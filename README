@@ -1,4 +1,26 @@
-GroudControl extensions for Firefox and Chromium.
+GROUNDCONTROL   for Firefox and Chromium
+========================================
 
-Common code used by both extensions lives in chromium/common; the Firefox
-extension has a symbolic link to that directory.
+  Providing management of a Rackspace Cloud Servers account.
+
+
+TO INSTALL FOR TESTING
+======================
+
+  Assuming this README in is ~/groundcontrol:
+  In Chromium: 
+    visit chrome://extensions
+    click Developer Mode
+    click Load Unpacked Extension
+    select ~/groundcontrol/chromium
+  In Firefox:
+    cd ~/.mozilla/firefox/*.default
+    echo "~/groundcontrol/firefox/" > "groundcontrol@rackspace.com"
+
+
+FILES
+=====
+
+  chromium/         The Chromium extension
+  firefox/          The Firefox extension
+  chromium/common/  The code used by both extensions (FF symlinks to this)
