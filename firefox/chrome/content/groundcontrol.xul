@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<overlay id="groundcontrol" 
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script type="application/x-javascript">
+      function groundcontrol_openWindow() {
+          var url = "chrome://groundcontrol/content/common/groundcontrol.html";
+          getBrowser().selectedTab = getBrowser().addTab(url);
+      }
+  </script>
+
+  <menupopup id="menu_ToolsPopup">
+      <menuitem id="groundcontrol_menu" oncommand="groundcontrol_openWindow();" 
+          insertafter="javascriptConsole,devToolsSeparator" 
+          label="GroundControl"/>
+  </menupopup>
+</overlay>

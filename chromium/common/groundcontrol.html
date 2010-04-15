@@ -1,0 +1,20 @@
+<html>
+  <head>
+    <title>GroundControl</title>
+    <script src="jquery/jquery-1.4.min.js"></script>
+    <script src="functions.js"></script>
+    <script src="cloudservers/authentication.js"></script>
+    <script>
+      $(function() {
+        var key = prompt("Enter your API access key:");
+        authenticate("gundlach", key, function(x) {
+          $("div#it").text(x.auth_token + " " + x.smgmt);
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="it"></div>
+  </body>
+</html>
+

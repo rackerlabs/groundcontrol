@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <script>
+      var groundcontrolTabId = null;
+
+      // Browser action click --> open or focus the UI in a tab.
+      chrome.browserAction.onClicked.addListener(function(tab) {
+
+        chrome.tabs.getAllInWindow(undefined, function(tabs) {
+          for (var i = 0; i < tabs.length; i++) {
+            if (tabs[i].id == groundcontrolTabId) {
+              chrome.tabs.update(tabs[i].id, {selected: true});
+              return;
+            }
+          }
+          // No match; the UI was closed, or hasn't been opened yet.
+          var url = chrome.extension.getURL("common/groundcontrol.html");
+          chrome.tabs.create({url:url}, function(tab) {
+            groundcontrolTabId = tab.id;
+          });
+        });
+
+      });
+
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

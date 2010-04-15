@@ -1,1 +1,4 @@
-groundcontrol.
+GroudControl extensions for Firefox and Chromium.
+
+Common code used by both extensions lives in chromium/common; the Firefox
+extension has a symbolic link to that directory.
