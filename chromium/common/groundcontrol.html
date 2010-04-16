@@ -3,14 +3,19 @@
     <title>GroundControl</title>
     <script src="jquery/jquery-1.4.min.js"></script>
     <script src="functions.js"></script>
-    <script src="cloudservers/authentication.js"></script>
+    <script src="cloudservers/service.js"></script>
+    <script src="cloudservers/faults.js"></script>
     <script>
-      $(function() {
-        var key = prompt("Enter your API access key:");
-        authenticate("gundlach", key, function(x) {
-          $("div#it").text(x.auth_token + " " + x.smgmt);
+      var client = com.rackspace.cloud.servers.api.client;
+      try {
+        var service = new client.CloudServersService({
+          username: "gundlach",
+          apiKey: prompt("ENTER YOUR API KEY!!  GO!  DON'T STOP TO THINK!!")
         });
-      });
+        alert("OK: " + service._authToken + " " + service._serverManagementUrl);
+      } catch (ex) {
+        alert("Exception: " + ex.code + " " + ex.message);
+      }
     </script>
   </head>
   <body>
