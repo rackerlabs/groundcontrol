@@ -7,14 +7,21 @@ CloudService
 EntityManager
   handles a subclass of Entity
   has subclasses
+  all CRUD should have an optional callback function which gets called once
+    the operation completes
 
 Entity
   has subclasses
 
 EntityList
   no subclasses
+  needs a eachAsync(function(entity)) so we aren't stuck blocking to loop
+    through the list.
 
 Fault
+
+
+
 
 $.ajax has access to request&response headers, and returns the xhr object
 so you can abort or monitor the request.
@@ -31,14 +38,14 @@ rackspace, it won't be XHR anymore. (?)
 will need to handle localization myself, since chrome and ff do it
 differently.
 
-1. Verify that cross-site XHR is OK within an HTML FF page.
-2. Write a minimal js bindings.
-3. Make Chrome and FF extensions that use them.
+OK 1. Verify that cross-site XHR is OK within an HTML FF page.
+OK 2. Write a minimal js bindings.
+OK 3. Make Chrome and FF extensions that use them.
 4. Extend js bindings.
 5. Write localization.
    If this fails, we can fall back to XUL and Chrome-style l10n.
 
-localization: rel="__MSG_xyz" gets innertext filled by getMessage("xyz").
+localization: rel="__MSG_xyz" gets innertext filled by getMessage("xyz")?
 
 will be several files during development, but we'll want to ship it out as
 a single JS file at the end.

@@ -1,5 +1,6 @@
-// TODO: support proxy domains passed into ctor, so people can use this
-// API with a proxy to interact w/ CloudServers from their own sites
+// TODO: support proxy domains passed into ctor via settings parameter, so
+// people can use this API with a proxy to interact w/ CloudServers from their
+// own sites
 
 // Built according to the Cloud Servers Language Binding Guide, rev 09/16/09.
 
@@ -22,6 +23,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 __csapi_client.CloudServersService = function(opts) {
   this._authUrl = "https://auth.api.rackspacecloud.com/v1.0";
   this._username = opts.username;
+  // TODO: if opts.settings.proxy, use it
   this._apiKey = opts.apiKey;
   var out_fault = {};
   this._blockingAuthenticate();
@@ -34,9 +36,9 @@ __csapi_client.CloudServersService.prototype = {
    *
    * Throws an UnauthorizedFault if credentials are invalid.
    */
-  _blockingAuthenticate: function(attempt) {
+  _blockingAuthenticate: function(_attempt) {
     var MAX_ATTEMPTS = 3;
-    attempt = attempt || 1;
+    _attempt = _attempt || 1;
     var fault = undefined; // gets set by error callback if we fail
 
     var that = this;
@@ -56,9 +58,9 @@ __csapi_client.CloudServersService.prototype = {
         that._serverManagementUrl = right;
       },
       error: function(xhr) {
-        if (attempt < MAX_ATTEMPTS) {
+        if (_attempt < MAX_ATTEMPTS) {
           try {
-            that._blockingAuthenticate(attempt+1);
+            that._blockingAuthenticate(_attempt+1);
           } catch (ex) {
             fault = ex;
           }
@@ -78,7 +80,7 @@ __csapi_client.CloudServersService.prototype = {
   // TODO: implement this.serviceInfo to query Version, Limits, and Settings.
 
   createServerManager: function() {
-    // TODO
+    return new ServerManager(this);
   },
 
   createImageManager: function() {
