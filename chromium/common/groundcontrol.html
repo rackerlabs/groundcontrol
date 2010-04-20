@@ -10,35 +10,55 @@
     <script>
       $(function() {
         var client = com.rackspace.cloud.servers.api.client;
-        try {
-          service = new client.CloudServersService({
-            username: "gundlach",
-            apiKey: "c36ec1e44e2e2947f8e155a3a122a358"
-          });
-          $("#it").text("'service' object authenticated.");
-          servers = service.createServerManager();
+        service = new client.CloudServersService({
+          username: "gundlach",
+          apiKey: "c36ec1e44e2e2947f8e155a3a122a358"
+        });
+        $("#it").text("'service' object authenticated.");
+        servers = service.createServerManager();
 
+        $("<button>").text("Fetch").appendTo("body").click(function() {
           servers.find({
             id:186199, 
             success:function(entity) {
               $("#it").append("Fetched " + entity.id + " OK.");
-              servers.refresh({
-                entity: entity,
-                success: function(entity) {
-                  $("#it").append("Refreshed " + entity.id + " OK.");
-                },
-                fault: function(fault) {
-                  $("#it").append("Refresh FAULT: " + JSON.stringify(fault));
-                }
-              });
+              theEntity = entity;
             },
             fault: function(fault) {
               console.log("FAULT fetching: " + JSON.stringify(fault));
             }
           });
-        } catch (ex) {
-          $("#it").text("Exception: " + ex.code + " " + ex.message);
-        }
+        }).after("<br/>");
+
+        $("<button>").text("Refresh").appendTo("body").click(function() {
+          servers.refresh({
+            entity:theEntity,
+            success:function(entity) {
+              theEntity = entity;
+              $("#it").append("Refreshed " + entity.id + " OK.");
+            },
+            fault: function(fault) {
+              console.log("FAULT refreshing: " + JSON.stringify(fault));
+            }
+          });
+        }).after("<br/>");
+
+        $("<input id='newName'>").appendTo("body");
+
+        $("<button>").text("Update").appendTo("body").click(function() {
+          theEntity.name = $("#newName").val();
+          servers.update({
+            entity:theEntity,
+            success:function(entity) {
+              theEntity = entity;
+              $("#it").append("Updated " + entity.name + " OK.");
+            },
+            fault: function(fault) {
+              console.log("FAULT updating: " + JSON.stringify(fault));
+            }
+          });
+        }).after("<br/>");
+
       });
     </script>
   </head>

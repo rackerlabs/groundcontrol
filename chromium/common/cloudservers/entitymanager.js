@@ -6,7 +6,8 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 // TODO: test rate limiting retries
 
 /**
- * Base EntityManager class.
+ * Base EntityManager class.  Subclasses must implement _makeUpdateEntity()
+ * and _isEntityUpdated(); see below for usage.
  *
  * service:CloudServersService is the service that created this manager.
  * apiRoot:string is the suffix to append to the service's management URL
@@ -17,20 +18,22 @@ __csapi_client.EntityManager = function(service, apiRoot) {
   this._url = service._serverManagementUrl + apiRoot;
 }
 /**
- * Given a string of JSON containing fault information, return a fault:object
- * containing:
+ * Given a completed XMLHttpRequest whose responseText contains fault 
+ * information, return a fault:object containing:
  *   code:integer
  *   message:string
  *   details?:string
  *   retryAfter?:Date time after which to retry a rate-limited request
  */
-__csapi_client.EntityManager._parseFault = function(text) {
-  text = text || '{ "unknown": { "code": 0, "message": "Unknown fault" } }';
+__csapi_client.EntityManager._parseFault = function(xhr) {
+  var text = xhr.responseText || '{ "dunno": { "message": "Unknown fault" } }';
   var json = $.parseJSON(text);
   for (var faultname in json) { // grab the only object within json
     var fault = json[faultname];
+    fault.type = faultname;
     break;
   }
+  fault.code = xhr.status;
   if (fault.retryAfter) { // convert from XML time format to Date
     var t = fault.retryAfter.match(/^(....)-(..)-(..)T(..):(..):(..)Z/);
     fault.retryAfter = new Date(t[1], t[2], t[3], t[4], t[5], t[6]);
@@ -48,6 +51,7 @@ __csapi_client.EntityManager.prototype = {
    *   async?:bool defaults to true
    *   type?:string one of GET POST PUT or DELETE.  Defaults to "GET".
    *   path:string to fetch, e.g. "12".  Appended to the EntityManager's URL.
+   *   data:object to JSON.stringify() and send in the request body
    *   beforeSend?:function(xhr) as in $.ajax
    *   success?:function(json, status, xhr) as in $.ajax
    *   fault?:function(fault:object) called if an unrecoverable error occurs.
@@ -68,6 +72,11 @@ __csapi_client.EntityManager.prototype = {
     opts.fault = opts.fault || function() {};
     opts.success = opts.success || function() {};
     opts.type = opts.type || "GET";
+    if (opts.data) {
+      opts.data = JSON.stringify(opts.data);
+      opts.processData = false;
+      opts.contentType = "application/json";
+    }
     if (opts.async === undefined) opts.async = true;
     if (opts.type in {GET:1, POST:1}) opts.dataType = "json";
 
@@ -77,6 +86,9 @@ __csapi_client.EntityManager.prototype = {
       type: opts.type,
       url: that._url + "/" + opts.path,
       dataType: opts.dataType,
+      data: opts.data,
+      processData: opts.processData,
+      contentType: opts.contentType,
       beforeSend: function(xhr) {
         xhr.setRequestHeader("X-Auth-Token", that._service._authToken);
         opts.beforeSend(xhr);
@@ -86,7 +98,7 @@ __csapi_client.EntityManager.prototype = {
         // Authentication failed --> reauthenticate and try again once
         if (xhr.status == 401) {
           if (_retryData.authFailedOnce) { // give up
-            opts.fault(EntityManager._parseFault(xhr.responseText));
+            opts.fault(EntityManager._parseFault(xhr));
           } else {
             _retryData.authFailedOnce = true;
             try {
@@ -100,8 +112,7 @@ __csapi_client.EntityManager.prototype = {
         }
         // Rate limited --> wait, then try again - several times
         if (xhr.status == 413) {
-          var faultData = __csapi_client.EntityManager._parseFault(
-            xhr.responseText);
+          var faultData = __csapi_client.EntityManager._parseFault(xhr);
           if (_retryData.rateLimitedTimes > 5) { // give up
             opts.fault(faultData);
           } else {
@@ -120,7 +131,7 @@ __csapi_client.EntityManager.prototype = {
           }
           return;
         }
-        opts.fault(__csapi_client.EntityManager._parseFault(xhr.responseText));
+        opts.fault(__csapi_client.EntityManager._parseFault(xhr));
       }
     });
   },
@@ -131,7 +142,55 @@ __csapi_client.EntityManager.prototype = {
   remove: function(entity) {
   },
 
-  update: function(entity) {
+  /**
+   * Update the given entity, calling success or fault callbacks
+   * asynchronously upon completion.
+   *
+   * opts:object contains:
+   *   entity:Entity to update.
+   *   success?:function(entity) called when the update has completed on the
+   *       server.  This may be after a significant delay for some entity
+   *       types.  Note that if you do not specify a success callback, the
+   *       system does not have to poll the server until completion, which
+   *       saves account resources.
+   *     entity:Entity the updated entity.
+   *   fault?:function(fault) called if there was an error in your request.
+   *     fault:CloudServersFault the fault that occurred.
+   *
+   */
+  update: function(opts) {
+    opts.fault = opts.fault || function() {};
+    var that = this;
+    that._request({
+      type: "PUT",
+      path: opts.entity.id,
+      data: that._makeUpdateEntity(opts.entity),
+      success: function(json, status, xhr) {
+        if (!opts.success) // no need to poll
+          return;
+
+        var timer = window.setInterval(function() {
+          that.refresh({
+            entity:opts.entity,
+            success: function(newEntity) {
+              if (that._isEntityUpdated(newEntity)) {
+                // Update complete; stop polling and notify the user.
+                window.clearInterval(timer);
+                opts.success(newEntity);
+                return;
+              }
+              // else, timer will fire again in a bit and we try again.
+            },
+            fault: function(fault) {
+              // Something went wrong; stop polling and notify the user.
+              window.clearInterval(timer);
+              opts.fault(fault);
+            }
+          });
+        }, 30000); // TODO: check Limits and pick a time based on that
+      },
+      fault: opts.fault
+    });
   },
 
   /**
