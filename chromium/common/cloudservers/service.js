@@ -68,8 +68,7 @@ __csapi_client.CloudServersService.prototype = {
           // Since we can't throw directly from a callback function, we set a
           // variable for the caller to throw.  This only works because we're
           // within a *synchronous* ajax call.
-          fault = new __csapi_client.UnauthorizedFault(
-            xhr.status, xhr.responseText);
+          fault = {code: xhr.status, message:xhr.responseText};
         }
       }
     });
@@ -80,7 +79,7 @@ __csapi_client.CloudServersService.prototype = {
   // TODO: implement this.serviceInfo to query Version, Limits, and Settings.
 
   createServerManager: function() {
-    return new ServerManager(this);
+    return new __csapi_client.ServerManager(this);
   },
 
   createImageManager: function() {

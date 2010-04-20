@@ -11,9 +11,11 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * service:CloudServersService instance to work with.
  */
 __csapi_client.ServerManager = function(service) {
-  this._service = service;
+  __csapi_client.EntityManager.call(this, service, "/servers");
 }
 __csapi_client.ServerManager.prototype = {
+  __proto__: __csapi_client.EntityManager.prototype,
+
   reboot: function(server, rebootType) {
   },
 

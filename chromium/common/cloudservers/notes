@@ -20,7 +20,61 @@ EntityList
 
 Fault
 
+api key: c36ec1e44e2e2947f8e155a3a122a358
 
+request({
+  type: "GET",
+  // full URL handled silently
+  path: id,
+  async: false,
+  // auth token handled silently
+  // accept:gzip handled silently
+  // 401 unauthorized handled silently -- retried a couple times
+  // 413 rate control handled silently -- (waited then retried) a couple times
+  success: function(json) {
+    // json.server;
+  },
+  error: function(fault) {
+    // fault.message, .details, .code
+  }
+})
+
+post({
+  path: id,
+  async: true,
+  success: function(json) {
+    // json.server
+  },
+  error: function(fault) {
+    // fault.message, .details, .code
+  }
+})
+
+put/delete({
+  path: id,
+  async: true,
+  success: function() {
+  },
+  error: function(fault) {
+    // fault.message, .details, code
+  }
+})
+
+ajax requests do this:
+  get post put or delete
+  sync or async
+  provide authentication token in header
+  provide Accept-Encoding: gzip in header if it works
+  handle 401 Unauthorized by re-authenticating then retrying
+  handle 413 Rate Control (+ Reply-After header) by setTimeout then retry
+    (only works for async or callback-based requests)
+  handle other 400 and 500 errors appropriately
+    all errors will contain a root element explaining what went wrong --
+    see dev guide for list, page 17
+    per the guide p17, it's OK to not distinguish b/w fault types; just make
+    everybody a cloudserversfault.  in JS i think this translates to, don't
+    worry about subclasses for each fault type; just fill in the code msg and
+    details and maybe retryAfter.
 
 
 $.ajax has access to request&response headers, and returns the xhr object

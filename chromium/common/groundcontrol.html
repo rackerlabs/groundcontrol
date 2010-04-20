@@ -1,21 +1,45 @@
 <html>
   <head>
     <title>GroundControl</title>
-    <script src="jquery/jquery-1.4.min.js"></script>
+    <script src="jquery/jquery-1.4.2.min.js"></script>
     <script src="functions.js"></script>
     <script src="cloudservers/service.js"></script>
     <script src="cloudservers/faults.js"></script>
+    <script src="cloudservers/entitymanager.js"></script>
+    <script src="cloudservers/servermanager.js"></script>
     <script>
-      var client = com.rackspace.cloud.servers.api.client;
-      try {
-        var service = new client.CloudServersService({
-          username: "gundlach",
-          apiKey: prompt("ENTER YOUR API KEY!!  GO!  DON'T STOP TO THINK!!")
-        });
-        alert("OK: " + service._authToken + " " + service._serverManagementUrl);
-      } catch (ex) {
-        alert("Exception: " + ex.code + " " + ex.message);
-      }
+      $(function() {
+        var client = com.rackspace.cloud.servers.api.client;
+        try {
+          service = new client.CloudServersService({
+            username: "gundlach",
+            apiKey: "c36ec1e44e2e2947f8e155a3a122a358"
+          });
+          $("#it").text("'service' object authenticated.");
+          servers = service.createServerManager();
+
+          servers.find({
+            id:186199, 
+            success:function(entity) {
+              $("#it").append("Fetched " + entity.id + " OK.");
+              servers.refresh({
+                entity: entity,
+                success: function(entity) {
+                  $("#it").append("Refreshed " + entity.id + " OK.");
+                },
+                fault: function(fault) {
+                  $("#it").append("Refresh FAULT: " + JSON.stringify(fault));
+                }
+              });
+            },
+            fault: function(fault) {
+              console.log("FAULT fetching: " + JSON.stringify(fault));
+            }
+          });
+        } catch (ex) {
+          $("#it").text("Exception: " + ex.code + " " + ex.message);
+        }
+      });
     </script>
   </head>
   <body>
