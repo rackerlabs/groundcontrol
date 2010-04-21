@@ -136,7 +136,56 @@ __csapi_client.EntityManager.prototype = {
     });
   },
 
-  create: function(entity) {
+  /**
+   * Create the given entity on the server, calling success or fault callbacks
+   * asynchronously upon completion.
+   *
+   * opts:object contains:
+   *   entity:Entity to create.
+   *   success?:function(entity) called when the entity has been created on the
+   *       server.  This may be after a significant delay for some entity
+   *       types.  Note that if you do not specify a success callback, the
+   *       system does not have to poll the server until completion, which
+   *       saves account resources.
+   *     entity:Entity the newly created entity.
+   *   fault?:function(fault) called if there was an error in your request.
+   *     fault:CloudServersFault the fault that occurred.
+   */
+  create: function(opts) {
+    // TODO: this is identical basically to .update().  Extract the polling
+    // to its own function.
+
+    opts.fault = opts.fault || function() {};
+    this._request({
+      type: "POST",
+      path: "",
+      data: opts.entity,
+      success: function(json, status, xhr) {
+        if (!opts.success) // no need to poll
+          return;
+
+        var timer = window.setInterval(function() {
+          that.refresh({
+            entity:opts.entity,
+            success: function(newEntity) {
+              if (that._isEntityUpdated(newEntity)) {
+                // Create complete; stop polling and notify the user.
+                window.clearInterval(timer);
+                opts.success(newEntity);
+                return;
+              }
+              // else, timer will fire again in a bit and we try again.
+            },
+            fault: function(fault) {
+              // Something went wrong; stop polling and notify the user.
+              window.clearInterval(timer);
+              opts.fault(fault);
+            }
+          });
+        }, 30000); // TODO: check Limits and pick a time based on that
+      },
+      fault: opts.fault
+    });
   },
 
   remove: function(entity) {
