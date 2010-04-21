@@ -17,22 +17,28 @@ __csapi_client.ServerManager.prototype = {
   __proto__: __csapi_client.EntityManager.prototype,
 
   /**
-   * Given a Server, return the object that should be sent in update requests.
+   * Return the data to send in an update request for the given Server entity.
    */
-  _makeUpdateEntity: function(entity) {
+  _dataForUpdate: function(entity) {
     return { server: { name: entity.name, adminPass: entity.adminPass } };
   },
 
   /**
-   * Return false in the given entity is still updating on the server
-   * (based on its local attributes).
+   * Return the data to send in create request for the given Server entity.
    */
-  _isEntityUpdated: function(entity) {
-    // TODO: could EntityManager implement this as == ACTIVE/ERROR, so that
-    // most don't have to customize it?
-    return entity.status != "PASSWORD";
+  _dataForCreate: function(entity) {
+    return { server: entity };
   },
 
+  /**
+   * Return false in the given entity is in the middle of completing an
+   * operation on the server (based on its local attributes).
+   */
+  _isInFlux: function(entity) {
+    // TODO: could EntityManager implement this as == ACTIVE/ERROR, so that
+    // most don't have to customize it?  see binding guide p12
+    return entity.status == "ACTIVE" || entity.status == "ERROR";
+  },
 
   reboot: function(server, rebootType) {
   },

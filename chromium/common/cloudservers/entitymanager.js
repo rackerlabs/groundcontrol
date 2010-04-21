@@ -6,8 +6,8 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 // TODO: test rate limiting retries
 
 /**
- * Base EntityManager class.  Subclasses must implement _makeUpdateEntity()
- * and _isEntityUpdated(); see below for usage.
+ * Base EntityManager class.  Subclasses must implement _dataForUpdate(),
+ * _dataForCreate, and _isInFlux(); see below for usage.
  *
  * service:CloudServersService is the service that created this manager.
  * apiRoot:string is the suffix to append to the service's management URL
@@ -152,48 +152,53 @@ __csapi_client.EntityManager.prototype = {
    *     fault:CloudServersFault the fault that occurred.
    */
   create: function(opts) {
-    // TODO: this is identical basically to .update().  Extract the polling
-    // to its own function.
-
     opts.fault = opts.fault || function() {};
-    this._request({
+
+    var that = this;
+    that._request({
       type: "POST",
       path: "",
-      data: opts.entity,
-      success: function(json, status, xhr) {
+      data: that._dataForCreate(opts.entity),
+      success: function(json) {
         if (!opts.success) // no need to poll
           return;
 
-        var timer = window.setInterval(function() {
-          that.refresh({
-            entity:opts.entity,
-            success: function(newEntity) {
-              if (that._isEntityUpdated(newEntity)) {
-                // Create complete; stop polling and notify the user.
-                window.clearInterval(timer);
-                opts.success(newEntity);
-                return;
-              }
-              // else, timer will fire again in a bit and we try again.
-            },
-            fault: function(fault) {
-              // Something went wrong; stop polling and notify the user.
-              window.clearInterval(timer);
-              opts.fault(fault);
-            }
-          });
-        }, 30000); // TODO: check Limits and pick a time based on that
+        // Suck out the new entity so we have an id to wait on
+        for (var key in json) { var newEntity = json[key]; break; }
+        // Wait for completion, then call success callback
+        that.wait({
+          entity: newEntity,
+          success: opts.success,
+          fault: opts.fault
+        });
       },
       fault: opts.fault
     });
   },
 
-  remove: function(entity) {
+  /**
+   * Delete the given entity on the server, calling success or fault callbacks
+   * asynchronously upon completion.
+   *
+   * opts:object contains:
+   *   entity:Entity to delete.
+   *   success?:function() called upon deleteion.
+   *   fault?:function(fault) called if there was an error in your request.
+   *     fault:CloudServersFault the fault that occurred.
+   */
+  remove: function(opts) {
+    opts.success = opts.success || function() {};
+    this._request({
+      type: "DELETE",
+      path: opts.entity.id,
+      success: function() { opts.success() }, // strip incoming arguments
+      fault: opts.fault
+    });
   },
 
   /**
-   * Update the given entity, calling success or fault callbacks
-   * asynchronously upon completion.
+   * Update the given entity, calling success or fault callbacks asynchronously
+   * upon completion.
    *
    * opts:object contains:
    *   entity:Entity to update.
@@ -209,34 +214,19 @@ __csapi_client.EntityManager.prototype = {
    */
   update: function(opts) {
     opts.fault = opts.fault || function() {};
+
     var that = this;
     that._request({
       type: "PUT",
       path: opts.entity.id,
-      data: that._makeUpdateEntity(opts.entity),
-      success: function(json, status, xhr) {
+      data: that._dataForUpdate(opts.entity),
+      success: function(json) {
         if (!opts.success) // no need to poll
           return;
 
-        var timer = window.setInterval(function() {
-          that.refresh({
-            entity:opts.entity,
-            success: function(newEntity) {
-              if (that._isEntityUpdated(newEntity)) {
-                // Update complete; stop polling and notify the user.
-                window.clearInterval(timer);
-                opts.success(newEntity);
-                return;
-              }
-              // else, timer will fire again in a bit and we try again.
-            },
-            fault: function(fault) {
-              // Something went wrong; stop polling and notify the user.
-              window.clearInterval(timer);
-              opts.fault(fault);
-            }
-          });
-        }, 30000); // TODO: check Limits and pick a time based on that
+        // Conveniently, wait() requires entity, success, and fault?, and
+        // we have those.
+        that.wait(opts);
       },
       fault: opts.fault
     });
@@ -267,8 +257,9 @@ __csapi_client.EntityManager.prototype = {
           opts.success(opts.entity);
         }
         else {
-          json.server._lastModified = xhr.getResponseHeader("Last-Modified");
-          opts.success(json.server);
+          for (var key in json) { var result = json[key]; break; }
+          result._lastModified = xhr.getResponseHeader("Last-Modified");
+          opts.success(result);
         }
       },
       fault: function(fault) {
@@ -295,8 +286,9 @@ __csapi_client.EntityManager.prototype = {
     this._request({
       path: opts.id,
       success: function(json, status, xhr) {
-        json.server._lastModified = xhr.getResponseHeader("Last-Modified");
-        opts.success(json.server);
+        for (var key in json) { var result = json[key]; break; }
+        result._lastModified = xhr.getResponseHeader("Last-Modified");
+        opts.success(result);
       },
       fault: function(fault) {
         if (fault.code == 404)
@@ -307,8 +299,45 @@ __csapi_client.EntityManager.prototype = {
     });
   },
 
-  wait: function(entity, timeout_ms) {
-    throw {code:501, message:"Not implemented"};
+  /**
+   * When the given entity has completed whatever action is currently
+   * in progress upon it, call success callback asynchronously, or fault
+   * callback if there was a problem while waiting.  Note that this polls
+   * the server and thus consumes account resources.
+   *
+   * opts:object contains:
+   *   entity:Entity the entity in flux.  The server is guaranteed to be
+   *       polled at least once to fetch the latest status, even if the local
+   *       entity's properties do not reflect a state of flux.
+   *   success:function(entity) called once the entity is not in flux.
+   *       If wait is called upon an entity that is not in flux on the server,
+   *       success will still be called.
+   *     entity:Entity the newly fetched entity.
+   *   fault?:function(fault) called if there is a problem communicating with
+   *       the server.
+   *     fault:CloudServersFault details about the problem.
+   *   timeout_ms?:integer the number of milliseconds to wait before giving up,
+   *       in which case neither callback will be called.  Defaults to infinity.
+   */
+  wait: function(opts) {
+    opts.fault = opts.fault || function() {};
+    var that = this;
+    var checkNow = function() {
+      that.refresh({
+        entity:opts.entity,
+        fault: opts.fault, // give up and notify the user upon error
+        success: function(newEntity) {
+          if (that._isInFlux(newEntity)) {
+            opts.success(newEntity); // Done; notify the user.
+          }
+          else { // TODO: check Limits and pick an interval based on that
+            window.setTimeout(checkNow, 30000); // Check again in a little while.
+          }
+        }
+      });
+    }
+
+    window.setTimeout(checkNow, 10); // start ASAP.
   },
 
   /**
