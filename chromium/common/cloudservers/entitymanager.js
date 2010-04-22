@@ -16,6 +16,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 __csapi_client.EntityManager = function(service, apiRoot) {
   this._service = service;
   this._url = service._serverManagementUrl + apiRoot;
+  this._notifyPoller = new NotifyPoller(this);
 }
 /**
  * Given a completed XMLHttpRequest whose responseText contains fault 
@@ -327,7 +328,7 @@ __csapi_client.EntityManager.prototype = {
         entity:opts.entity,
         fault: opts.fault, // give up and notify the user upon error
         success: function(newEntity) {
-          if (that._isInFlux(newEntity)) {
+          if (that._isInFlux(opts.entity, newEntity) == false) {
             opts.success(newEntity); // Done; notify the user.
           }
           else { // TODO: check Limits and pick an interval based on that
@@ -340,15 +341,50 @@ __csapi_client.EntityManager.prototype = {
     window.setTimeout(checkNow, 10); // start ASAP.
   },
 
-  /**
-   * Execute callback when the given entity has changed.
-   */
-  notify: function(entity, callback) {
-    // TODO
+  // TODO: once notify works, replace wait() with this.
+  // it's shorter and doesn't reinvent the polling wheel.
+  _alternateWait: function(opts) {
+    opts.fault = opts.fault || function() {};
+
+    var that = this;
+    var handleNotification = function(notifyEvent) {
+      if (notifyEvent.error) {
+        that.stopNotify(opts.entity, handleNotification);
+        opts.fault(notifyEvent.fault);
+      }
+      else if (!that._isInFlux(opts.entity, notifyEvent.targetEntity)) {
+        that.stopNotify(opts.entity, handleNotification);
+        opts.success(notifyEvent.targetEntity);
+      }
+    });
+
+    that.notify(opts.entity, handleNotification);
   },
 
+  /**
+   * Register a listener that is called each time the given entity changes
+   * on the server.
+   *
+   * callback:function(event) called each time the entity changes.
+   *   event:object contains:
+   *     error:bool true if there was a problem communicating with the server
+   *     targetEntity:Entity the changed entity, if error is false
+   *     fault:CloudServersFault the fault that occurred, if error is true
+   */
+  notify: function(entity, callback) {
+    this._notifyPoller.register(entity, callback);
+  },
+
+  /**
+   * Deregister a callback function previous registered via notify().
+   * Does nothing if the callback was not registered for the given entity.
+   *
+   * entity:Entity the entity whose id matches the one used to register
+   *     the callback via notify().
+   * callback:function(event) the function that was passed to notify().
+   */
   stopNotify: function(entity, callback) {
-    // TODO
+    this._notifyPoller.deregister(entity, callback);
   },
 
   createList: function(detailed, offset, limit) {

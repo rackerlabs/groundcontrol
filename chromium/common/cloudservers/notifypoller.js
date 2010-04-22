@@ -1,9 +1,6 @@
 // Class handling polling the server for changes to objects, and notifying
 // listeners.
 
-// TODO This class is in a bad state of flux.  Reread through it and
-// clean up, finish, and fix.
-
 function _NotifyPoller(entityManager) {
   this._entityManager = entityManager;
 
@@ -19,40 +16,45 @@ function _NotifyPoller(entityManager) {
 NotifyPoller.prototype = {
   __proto__: undefined,
 
-  _pollIntervalMs: 15000, // TODO set this reasonably somehow
+  _pollIntervalMs: 30000, // TODO set this reasonably somehow
 
   /**
-   * Register a callback to be run when entity changes on the server.
+   * Registers a callback to be run when entity changes on the server.
+   * If callback is already registered for this entity, does not reregister.
    *
    * entity:Entity the entity to watch for a change.
    * callback:function as passed to EntityManager.notify().
    */
   register: function(entity, callback) {
-    // Poll immediately to see if the entity can get an immediate callback.
+    // Check immediately to see if the entity can get an immediate callback.
     // There are a few cases to consider to get this right and avoid race
     // conditions:
     //
-    //   1. Nobody else is listening: Just start polling as of the entity's
+    //   1. Nobody else is listening: Start polling as of the entity's
     //      lastModified date.
     //   2. Others are listening and the entity has been updated on the server
-    //      since our last poll time: Just poll now, and the callback will be
-    //      called.
+    //      since our previous poll: Do our next poll right now, so the 
+    //      callback will be called.
     //   3. Others are listening and the entity has been updated on the server
-    //      since it was fetched but before our last poll time: call the
-    //      callback immediately with the updated version, then let our polling
-    //      run as normal and check for possible new versions.
+    //      since it was fetched but before our previous poll: call the
+    //      callback immediately with the updated version, then keep
+    //      polling as usual to watch for further changes.
     //   4. Others are listening and the entity has not been updated on the
     //      server since it was fetched: just keep polling as usual.
  
     var otherListenersExist = this._someoneIsListening();
 
     this._listeners[entity.id] = this._listeners[entity.id] || [];
+    // Disallow multiple registration.
+    if (this._listeners[entity.id].indexOf(callback) != -1)
+      return;
+
     this._listeners[entity.id].push(callback);
 
     // Case 1 above
     if (!otherListenersExist) {
       this._lastPollTime = entity._lastModified;
-      this._startPollingNow();
+      this._pollNow();
     }
     else {
       var that = this;
@@ -68,11 +70,9 @@ NotifyPoller.prototype = {
           // Case 2 above
           else if (entity._lastModified < newEntity._lastModified &&
                    newEntity._lastModified > that._lastPollTime) {
-            // There was an update, but our next poll will catch it.
-            // Restart polling now to let callback know about the update ASAP.
-            // We can't call the callback or he'd get double-notified.
+            // There was an update, and our next poll will report it.
             window.clearTimeout(that._pollTimerId);
-            that._startPollingNow();
+            that._pollNow();
           }
           // Case 4 above
           else {
@@ -92,16 +92,11 @@ NotifyPoller.prototype = {
   // given entity (whose id matches that of the entity earlier passed to
   // register()).
   deregister: function(entity, callback) {
-    // TODO: race condition here if called by a callback in a string of
-    // callbacks, because we're modifying the list.
     var list = this._listeners[entity.id] || [];
 
-    for (var i = 0; i < list.length; i++) {
-      if (list[i] === callback) {
-        list.removeAt(i);
-        i--; // keep going; they may be registered more than once.
-      }
-    }
+    var where = list.indexOf(callback);
+    if (where != -1)
+      list.splice(where, 1);
 
     if (list.length == 0)
       delete this._listeners[entity.id];
@@ -121,16 +116,25 @@ NotifyPoller.prototype = {
 
     that.createEntityList({
       lastModified: that._lastPollTime,
-      success: function(entities) {
+      success: function(list) {
         if (that._someoneIsListening() == false)
           return; // don't re-register polling setTimeout
 
-        for (var i = 0; i < entities.length; i++) {
-          // TODO: make a copy of the callback list before calling them,
-          // in case any deregister themselves.
-          // TODO: call the callbacks if any are registered for this entity.
+        while (list.hasNext()) {
+          var changedEntity = list.next();
+          if (!that._listeners[changedEntity.id])
+            continue;
+
+          // avoid list mutation when callbacks deregister themselves
+          var callbacksCopy = that._listeners[changedEntity.id].slice();
+
+          for (var i=0; i < callbacksCopy.length; i++) {
+            callbacksCopy[i]({error:false, targetEntity:changedEntity});
+          }
         }
 
+        // Poll again later
+        that._lastPollTime = list.lastModified;
         that._pollTimerId = window.setTimeout(that._pollNow, 
                                               that._pollIntervalMs);
       },

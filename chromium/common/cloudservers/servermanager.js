@@ -31,13 +31,13 @@ __csapi_client.ServerManager.prototype = {
   },
 
   /**
-   * Return false in the given entity is in the middle of completing an
+   * Return true if the given entity is in the middle of completing an
    * operation on the server (based on its local attributes).
    */
-  _isInFlux: function(entity) {
-    // TODO: could EntityManager implement this as == ACTIVE/ERROR, so that
+  _isInFlux: function(oldEntity, newEntity) {
+    // TODO: could EntityManager implement this as != ACTIVE/ERROR, so that
     // most don't have to customize it?  see binding guide p12
-    return entity.status == "ACTIVE" || entity.status == "ERROR";
+    return newEntity.status != "ACTIVE" && newEntity.status != "ERROR";
   },
 
   reboot: function(server, rebootType) {
