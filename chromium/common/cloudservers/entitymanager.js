@@ -16,7 +16,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 __csapi_client.EntityManager = function(service, apiRoot) {
   this._service = service;
   this._url = service._serverManagementUrl + apiRoot;
-  this._notifyPoller = new NotifyPoller(this);
+  this._notifyPoller = new __csapi_client.NotifyPoller(this);
 }
 /**
  * Given a completed XMLHttpRequest whose responseText contains fault 
@@ -322,29 +322,16 @@ __csapi_client.EntityManager.prototype = {
    */
   wait: function(opts) {
     opts.fault = opts.fault || function() {};
-    var that = this;
-    var checkNow = function() {
-      that.refresh({
-        entity:opts.entity,
-        fault: opts.fault, // give up and notify the user upon error
-        success: function(newEntity) {
-          if (that._isInFlux(opts.entity, newEntity) == false) {
-            opts.success(newEntity); // Done; notify the user.
-          }
-          else { // TODO: check Limits and pick an interval based on that
-            window.setTimeout(checkNow, 30000); // Check again in a little while.
-          }
-        }
-      });
+
+    // TODO FIXME very temporary code to prove notify works at least once
+    // because, right now, it doesn't
+    opts.entity.status="PASSWORD";
+
+    // If the entity is already in a "complete" state, we don't need to wait.
+    if (!this._isInFlux(opts.entity, opts.entity)) {
+      opts.success(opts.entity);
+      return;
     }
-
-    window.setTimeout(checkNow, 10); // start ASAP.
-  },
-
-  // TODO: once notify works, replace wait() with this.
-  // it's shorter and doesn't reinvent the polling wheel.
-  _alternateWait: function(opts) {
-    opts.fault = opts.fault || function() {};
 
     var that = this;
     var handleNotification = function(notifyEvent) {
@@ -356,7 +343,7 @@ __csapi_client.EntityManager.prototype = {
         that.stopNotify(opts.entity, handleNotification);
         opts.success(notifyEvent.targetEntity);
       }
-    });
+    };
 
     that.notify(opts.entity, handleNotification);
   },
@@ -387,9 +374,26 @@ __csapi_client.EntityManager.prototype = {
     this._notifyPoller.deregister(entity, callback);
   },
 
+  /**
+   * Return a new list of entities.
+   *
+   * TODO: fill in options from EntityList once they shake out
+   */
   createList: function(detailed, offset, limit) {
+    return this.createDeltaList(detailed, undefined, offset, limit);
   },
 
+  /**
+   * Return a new list of entities modified since changes_since.
+   *
+   * TODO: fill in options from EntityList once they shake out
+   */
   createDeltaList: function(detailed, changes_since, offset, limit) {
+    return new __csapi_client.EntityList(this, {
+      detailed:detailed,
+      changes_since:changes_since,
+      offset:offset,
+      limit:limit
+    });
   },
 }

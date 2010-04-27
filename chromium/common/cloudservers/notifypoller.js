@@ -1,7 +1,12 @@
+// TODO: only need to do this once after we roll all our files together.
+if (typeof(com) == "undefined")
+  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
+__csapi_client = com.rackspace.cloud.servers.api.client;
+
 // Class handling polling the server for changes to objects, and notifying
 // listeners.
 
-function _NotifyPoller(entityManager) {
+__csapi_client.NotifyPoller = function(entityManager) {
   this._entityManager = entityManager;
 
   // A pointer, if any, to the setTimeout() function that will soon poll.
@@ -13,7 +18,7 @@ function _NotifyPoller(entityManager) {
    */
   this._listeners = {};
 }
-NotifyPoller.prototype = {
+__csapi_client.NotifyPoller.prototype = {
   __proto__: undefined,
 
   _pollIntervalMs: 30000, // TODO set this reasonably somehow
@@ -107,47 +112,54 @@ NotifyPoller.prototype = {
     for (var entry in this._listeners)
       return true;
     return false;
-  }
+  },
+
+  // Send fault to all listeners and deregister them.
+  _faultAndDeregisterEveryone: function(fault) {
+    var deadListeners = this._listeners;
+    this._listeners = {}; // deregister everybody
+
+    for (var id in deadListeners) {
+      for (var i = 0; i < deadListeners[id].length; i++) {
+        deadListeners[id][i]({error:true, fault: fault});
+      }
+    }
+  },
 
   // Check for new entities on the server, and notify interested parties.
   // Then register a callback to do it again in a little while.
   _pollNow: function() {
     var that = this;
 
-    that.createEntityList({
+    that._entityManager.createList({
       lastModified: that._lastPollTime,
       success: function(list) {
         if (that._someoneIsListening() == false)
           return; // don't re-register polling setTimeout
 
-        while (list.hasNext()) {
-          var changedEntity = list.next();
-          if (!that._listeners[changedEntity.id])
-            continue;
+        list.forEachAsync({
+          each: function(changedEntity) {
+            if (!that._listeners[changedEntity.id])
+              continue;
 
-          // avoid list mutation when callbacks deregister themselves
-          var callbacksCopy = that._listeners[changedEntity.id].slice();
+            // avoid list mutation when callbacks deregister themselves
+            var callbacksCopy = that._listeners[changedEntity.id].slice();
 
-          for (var i=0; i < callbacksCopy.length; i++) {
-            callbacksCopy[i]({error:false, targetEntity:changedEntity});
-          }
-        }
+            for (var i=0; i < callbacksCopy.length; i++) {
+              callbacksCopy[i]({error:false, targetEntity:changedEntity});
+            }
+          },
+          complete: function() {
+            // Poll again later
+            that._lastPollTime = list.lastModified;
+            that._pollTimerId = window.setTimeout(that._pollNow,
+                                                  that._pollIntervalMs);
+          },
+          fault: that._faultAndDeregisterEveryone
+        });
 
-        // Poll again later
-        that._lastPollTime = list.lastModified;
-        that._pollTimerId = window.setTimeout(that._pollNow, 
-                                              that._pollIntervalMs);
       },
-      fault: function(fault) {
-        var deadListeners = this._listeners;
-        this._listeners = {}; // deregister everybody
-
-        for (var id in deadListeners) {
-          for (var i = 0; i < deadListeners[id].length; i++) {
-            deadListeners[id][i]({error:true, fault: fault});
-          }
-        }
-      }
+      fault: that._faultAndDeregisterEveryone
     });
   }
 }

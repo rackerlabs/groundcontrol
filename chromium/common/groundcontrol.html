@@ -7,8 +7,18 @@
     <script src="cloudservers/faults.js"></script>
     <script src="cloudservers/entitymanager.js"></script>
     <script src="cloudservers/servermanager.js"></script>
+    <script src="cloudservers/notifypoller.js"></script>
+    <script src="cloudservers/entitylist.js"></script>
     <script>
       $(function() {
+        $('#ajaxes').ajaxStart(function() { 
+          $(this).append("Started<br/>");
+          $(this).css("background", "#ddddff");
+        }).ajaxStop(function() { 
+          $(this).append("Stopped<br/>");
+          $(this).css("background", "white");
+        });
+
         var client = com.rackspace.cloud.servers.api.client;
         service = new client.CloudServersService({
           username: "gundlach",
@@ -17,7 +27,7 @@
         $("#it").text("'service' object authenticated.");
         servers = service.createServerManager();
 
-        $("<button>").text("Fetch").appendTo("body").click(function() {
+        $("<button>").text("Fetch").appendTo("#controls").click(function() {
           servers.find({
             id:186199, 
             success:function(entity) {
@@ -30,7 +40,7 @@
           });
         }).after("<br/>");
 
-        $("<button>").text("Refresh").appendTo("body").click(function() {
+        $("<button>").text("Refresh").appendTo("#controls").click(function() {
           servers.refresh({
             entity:theEntity,
             success:function(entity) {
@@ -43,9 +53,9 @@
           });
         }).after("<br/>");
 
-        $("<input id='newName'>").appendTo("body");
+        $("<input id='newName'>").appendTo("#controls");
 
-        $("<button>").text("Update").appendTo("body").click(function() {
+        $("<button>").text("Update").appendTo("#controls").click(function() {
           theEntity.name = $("#newName").val();
           servers.update({
             entity:theEntity,
@@ -63,7 +73,9 @@
     </script>
   </head>
   <body>
+    <div id="controls"></div>
     <div id="it"></div>
+    <div id="ajaxes"></div>
   </body>
 </html>
 
