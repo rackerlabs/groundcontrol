@@ -47,6 +47,7 @@ __csapi_client.NotifyPoller.prototype = {
     //   4. Others are listening and the entity has not been updated on the
     //      server since it was fetched: just keep polling as usual.
  
+    console.log("Registering entity " + entity.id);
     var otherListenersExist = this._someoneIsListening();
 
     this._listeners[entity.id] = this._listeners[entity.id] || [];
@@ -58,10 +59,12 @@ __csapi_client.NotifyPoller.prototype = {
 
     // Case 1 above
     if (!otherListenersExist) {
+      console.log("Case 1");
       this._lastPollTime = entity._lastModified;
       this._pollNow();
     }
     else {
+      console.log("Not case 1");
       var that = this;
       that._entityManager.refresh({
         entity: entity,
@@ -69,18 +72,21 @@ __csapi_client.NotifyPoller.prototype = {
           // Case 3 above
           if (entity._lastModified < newEntity._lastModified &&
               newEntity._lastModified <= that._lastPollTime) {
+            console.log("Case 3");
             // There was an update, and our next poll won't catch it.
             callback({error:false, targetEntity:newEntity});
           }
           // Case 2 above
           else if (entity._lastModified < newEntity._lastModified &&
                    newEntity._lastModified > that._lastPollTime) {
+            console.log("Case 2");
             // There was an update, and our next poll will report it.
             window.clearTimeout(that._pollTimerId);
             that._pollNow();
           }
           // Case 4 above
           else {
+            console.log("Case 4");
             // There was no update, so just keep polling as usual.
           }
         },
@@ -97,6 +103,7 @@ __csapi_client.NotifyPoller.prototype = {
   // given entity (whose id matches that of the entity earlier passed to
   // register()).
   deregister: function(entity, callback) {
+    console.log("Denotifying for entity " + entity.id);
     var list = this._listeners[entity.id] || [];
 
     var where = list.indexOf(callback);
@@ -131,35 +138,29 @@ __csapi_client.NotifyPoller.prototype = {
   _pollNow: function() {
     var that = this;
 
-    that._entityManager.createList({
-      lastModified: that._lastPollTime,
-      success: function(list) {
-        if (that._someoneIsListening() == false)
-          return; // don't re-register polling setTimeout
+    var list = that._entityManager.createDeltaList(true, that._lastPollTime);
+    list.forEachAsync({
+      each: function(changedEntity) {
+        if (!that._listeners[changedEntity.id])
+          continue;
 
-        list.forEachAsync({
-          each: function(changedEntity) {
-            if (!that._listeners[changedEntity.id])
-              continue;
+        // avoid list mutation when callbacks deregister themselves
+        var callbacksCopy = that._listeners[changedEntity.id].slice();
 
-            // avoid list mutation when callbacks deregister themselves
-            var callbacksCopy = that._listeners[changedEntity.id].slice();
-
-            for (var i=0; i < callbacksCopy.length; i++) {
-              callbacksCopy[i]({error:false, targetEntity:changedEntity});
-            }
-          },
-          complete: function() {
-            // Poll again later
-            that._lastPollTime = list.getLastModified();
-            that._pollTimerId = window.setTimeout(that._pollNow,
-                                                  that._pollIntervalMs);
-          },
-          fault: that._faultAndDeregisterEveryone
-        });
-
+        for (var i=0; i < callbacksCopy.length; i++) {
+          callbacksCopy[i]({error:false, targetEntity:changedEntity});
+        }
+      },
+      complete: function() {
+        if (that._someoneIsListening()) {
+          // Poll again later
+          that._lastPollTime = list.getLastModified();
+          that._pollTimerId = window.setTimeout(that._pollNow,
+          that._pollIntervalMs);
+        }
       },
       fault: that._faultAndDeregisterEveryone
     });
+
   }
 }

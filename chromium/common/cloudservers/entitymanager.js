@@ -40,7 +40,7 @@ __csapi_client.EntityManager._parseFault = function(xhr) {
     // Adjust for the fact that their clock is skewed from ours
     fault.retryAfter = new Date(xhr.getResponseHeader("Retry-After"));
     var serverNow = new Date(xhr.getResponseHeader("Date"));
-    var skewSeconds = (serverNow - new Date()) / 1000;
+    var skewSeconds = (new Date() - serverNow) / 1000;
     fault.retryAfter.setSeconds(fault.retryAfter.getSeconds() + skewSeconds);
   }
   return fault;
@@ -78,8 +78,9 @@ __csapi_client.EntityManager.prototype = {
     opts.fault = opts.fault || function() {};
     opts.success = opts.success || function() {};
     opts.type = opts.type || "GET";
+    var data = undefined;
     if (opts.data) {
-      opts.data = JSON.stringify(opts.data);
+      data = JSON.stringify(opts.data);
       opts.processData = false;
       opts.contentType = "application/json";
     }
@@ -92,7 +93,7 @@ __csapi_client.EntityManager.prototype = {
       type: opts.type,
       url: that._url + "/" + opts.path,
       dataType: opts.dataType,
-      data: opts.data,
+      data: data,
       processData: opts.processData,
       contentType: opts.contentType,
       beforeSend: function(xhr) {
@@ -309,7 +310,8 @@ __csapi_client.EntityManager.prototype = {
    * When the given entity has completed whatever action is currently
    * in progress upon it, call success callback asynchronously, or fault
    * callback if there was a problem while waiting.  Note that this polls
-   * the server and thus consumes account resources.
+   * the server at least once to check the state of the entity and thus 
+   * consumes account resources.
    *
    * opts:object contains:
    *   entity:Entity the entity in flux.  The server is guaranteed to be
@@ -327,16 +329,6 @@ __csapi_client.EntityManager.prototype = {
    */
   wait: function(opts) {
     opts.fault = opts.fault || function() {};
-
-    // TODO FIXME very temporary code to prove notify works at least once
-    // because, right now, it doesn't
-    opts.entity.status="PASSWORD";
-
-    // If the entity is already in a "complete" state, we don't need to wait.
-    if (!this._isInFlux(opts.entity, opts.entity)) {
-      opts.success(opts.entity);
-      return;
-    }
 
     var that = this;
     var handleNotification = function(notifyEvent) {

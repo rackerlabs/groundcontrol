@@ -56,7 +56,7 @@ __csapi_client.EntityList.prototype = {
     if (haveIterated)
       return false;
     else
-      return (hasNext() == false);
+      return (this.hasNext() == false);
   },
 
   /**
@@ -94,8 +94,9 @@ __csapi_client.EntityList.prototype = {
    *     fault:CloudServersFault the fault that occurred
    */
   forEachAsync: function(opts) {
+    var that = this;
     var visitOneItem = function() {
-      this._nextAsync({
+      that._nextAsync({
         success: function(entity) {
           opts.each(entity);
           visitOneItem(); // keep visiting as long as it keeps working
@@ -154,7 +155,7 @@ __csapi_client.EntityList.prototype = {
   _storeNextPage: function(opts) {
     opts.success = opts.sucess || function() {};
     // Fetch a page starting from this._trueIndex, our current offset.
-    var requestPath = (this._options.detailed ? "/detail" : "");
+    var requestPath = (this._options.detailed ? "detail" : "");
     var path_opts = [];
     // TODO: getTime() works based on 1969 epoch, not 1970 epoch.
     path_opts.push("offset=" + this._trueIndex);
@@ -174,7 +175,7 @@ __csapi_client.EntityList.prototype = {
     }
     if (this._options.changes_since) {
       path_opts.push("changes-since=" + 
-                     new Date(this._options.changes_since)).getTime() / 1000;
+                     new Date(this._options.changes_since).getTime() / 1000);
     }
     requestPath += "?" + path_opts.join("&");
 
