@@ -50,17 +50,22 @@ __csapi_client.EntityList.prototype = {
    * server.
    */
   isEmpty: function() {
+    var haveIterated =  (this._trueIndex > this._options.offset);
+    if (haveIterated)
+      return false;
+    else
+      return (hasNext() == false);
   },
 
   /**
-   * Return the latest Date when any entity in this list was modified.
+   * Return the latest last-modification of any entity in this list.
    *
    * Throws a CloudServersFault if there was a problem communicating
    * with the server.
    */
   getLastModified: function() {
-    if (this._lastModified === undefined) {
-      // TODO
+    if (this._lastModified == undefined) {
+      this.hasNext(); // fetches a page and sets _lastModified
     }
     return this._lastModified;
   },

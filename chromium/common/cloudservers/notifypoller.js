@@ -151,7 +151,7 @@ __csapi_client.NotifyPoller.prototype = {
           },
           complete: function() {
             // Poll again later
-            that._lastPollTime = list.lastModified;
+            that._lastPollTime = list.getLastModified();
             that._pollTimerId = window.setTimeout(that._pollNow,
                                                   that._pollIntervalMs);
           },
