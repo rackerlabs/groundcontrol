@@ -11,8 +11,10 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * opts:object contains:
  *   detailed:bool true if the entities should contain all information; false
  *       if they should only contain name and id.
- *   changes_since?:Date the date after which an entity must have been modified
- *       in order to appear in the list.  Defaults to the beginning of time.
+ *   changes_since?: the time after which an entity must have been modified
+ *       in order to appear in the list.  You should only pass in
+ *       Last-Modified header values as reported by the server.  Defaults to
+ *       the beginning of time.
  *   offset?:integer the offset into the entities at which to start the list.
  *       Defaults to zero.
  *   limit?:integer the maximum number of items to return.  Defaults to 
@@ -39,7 +41,7 @@ __csapi_client.EntityList.prototype = {
     this._nextPageIndex = 0;
     // Our global index in the list
     this._trueIndex = this._options.offset;
-    // The "Last-Modified" Date reported by the server.
+    // The "Last-Modified" header reported by the server.
     this._lastModified = undefined;
   },
 
@@ -170,8 +172,10 @@ __csapi_client.EntityList.prototype = {
       // the server will then return an empty array to us.
       path_opts.push("limit=" + numRemaining);
     }
-    if (this._options.changes_since)
-      path_opts.push("changes-since=" + this._options.changes_since.getTime());
+    if (this._options.changes_since) {
+      path_opts.push("changes-since=" + 
+                     new Date(this._options.changes_since)).getTime() / 1000;
+    }
     requestPath += "?" + path_opts.join("&");
 
     var that = this;
@@ -179,11 +183,15 @@ __csapi_client.EntityList.prototype = {
       async: opts.async,
       path: requestPath,
       success: function(json, status, xhr) {
-        for (var key in json) break; // grab the only key name
-        that._currentPage = json[key];
+        if (status == 304) { // not modified: no changes.
+          that._currentPage = [];
+        }
+        else {
+          for (var key in json) break; // grab the only key name
+          that._currentPage = json[key];
+        }
         that._nextPageIndex = 0;
-        // TODO this surely doesn't convert properly, as JS Date is guh-hetto
-        that._lastModified = new Date(xhr.getResponseHeader("Last-Modified"));
+        that._lastModified = xhr.getResponseHeader("Last-Modified");
         opts.success();
       },
       fault: opts.fault
