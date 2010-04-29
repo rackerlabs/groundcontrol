@@ -37,15 +37,16 @@ __csapi_client.NotifyPoller.prototype = {
     //
     //   1. Nobody else is listening: Start polling as of the entity's
     //      lastModified date.
-    //   2. Others are listening and the entity has been updated on the server
-    //      since our previous poll: Do our next poll right now, so the 
-    //      callback will be called.
-    //   3. Others are listening and the entity has been updated on the server
-    //      since it was fetched but before our previous poll: call the
-    //      callback immediately with the updated version, then keep
-    //      polling as usual to watch for further changes.
-    //   4. Others are listening and the entity has not been updated on the
+    //   2. Others are listening, and the entity has not been updated on the
     //      server since it was fetched: just keep polling as usual.
+    //   3. Others are listening, the entity has been updated on the server
+    //      since it was fetched, and the update was after our upcoming poll's
+    //      changes_since time: do our next poll right now, so the callback
+    //      will be called.
+    //   4. Others are listening, the entity has been updated on the server
+    //      since it was fetched, and the update was before our upcoming poll's
+    //      changes_since time: call the callback immediately with the updated
+    //      version, then keep polling as usual to watch for further changes.
  
     console.log("Registering entity " + entity.id);
     var otherListenersExist = this._someoneIsListening();
@@ -57,40 +58,36 @@ __csapi_client.NotifyPoller.prototype = {
 
     this._listeners[entity.id].push(callback);
 
-    // Case 1 above
     if (!otherListenersExist) {
+      // Case 1 above: we're not polling, so start.
       console.log("Case 1");
-      this._lastPollTime = entity._lastModified;
+      this._pollForChangesSince = entity._lastModified;
       this._pollNow();
     }
     else {
-      console.log("Not case 1");
       var that = this;
       that._entityManager.refresh({
         entity: entity,
         success: function(newEntity) {
-          // Case 3 above
-          if (entity._lastModified < newEntity._lastModified &&
-              newEntity._lastModified <= that._lastPollTime) {
-            console.log("Case 3");
-            // There was an update, and our next poll won't catch it.
-            callback({error:false, targetEntity:newEntity});
-          }
-          // Case 2 above
-          else if (entity._lastModified < newEntity._lastModified &&
-                   newEntity._lastModified > that._lastPollTime) {
+          console.log("notify's refresh call was a success");
+          if (entity._lastModified >= newEntity._lastModified) {
             console.log("Case 2");
-            // There was an update, and our next poll will report it.
+            // Case 2 above: newEntity hasn't changed, so just poll as usual.
+          }
+          else if (newEntity._lastModified > that._pollForChangesSince) {
+            console.log("Case 3");
+            // Case 3: newEntity is updated, but our next poll will catch it.
             window.clearTimeout(that._pollTimerId);
             that._pollNow();
           }
-          // Case 4 above
           else {
             console.log("Case 4");
-            // There was no update, so just keep polling as usual.
+            // Case 4: newEntity is updated, and our next poll won't catch it.
+            callback({error:false, targetEntity:newEntity});
           }
         },
         fault: function(fault) {
+          console.log("notify had a fault");
           // An excellent excuse to not deal with this guy at all!
           that.deregister(entity, callback);
           callback({error:true, fault:fault});
@@ -136,27 +133,35 @@ __csapi_client.NotifyPoller.prototype = {
   // Check for new entities on the server, and notify interested parties.
   // Then register a callback to do it again in a little while.
   _pollNow: function() {
+    console.log("Entering pollNow");
     var that = this;
 
-    var list = that._entityManager.createDeltaList(true, that._lastPollTime);
+    var list = that._entityManager.createDeltaList(true, 
+                                                   that._pollForChangesSince);
     list.forEachAsync({
       each: function(changedEntity) {
         if (!that._listeners[changedEntity.id])
-          continue;
+          return;
 
         // avoid list mutation when callbacks deregister themselves
         var callbacksCopy = that._listeners[changedEntity.id].slice();
 
         for (var i=0; i < callbacksCopy.length; i++) {
+          console.log("Notifying callback " + i + " for entity " + 
+                      changedEntity.id);
           callbacksCopy[i]({error:false, targetEntity:changedEntity});
         }
       },
       complete: function() {
         if (that._someoneIsListening()) {
+          console.log("NOTIFY: will run again; we still have listeners");
           // Poll again later
-          that._lastPollTime = list.getLastModified();
-          that._pollTimerId = window.setTimeout(that._pollNow,
-          that._pollIntervalMs);
+          that._pollForChangesSince = list.getLastModified();
+          that._pollTimerId = window.setTimeout(
+            function() { that._pollNow(); },
+            that._pollIntervalMs);
+        } else {
+          console.log("NOTIFY: is done; we have no listeners");
         }
       },
       fault: that._faultAndDeregisterEveryone

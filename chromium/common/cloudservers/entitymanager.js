@@ -37,11 +37,16 @@ __csapi_client.EntityManager._parseFault = function(xhr) {
   }
   fault.code = xhr.status;
   if (fault.retryAfter) {
-    // Adjust for the fact that their clock is skewed from ours
+    // The header is much easier to parse than the JSON string, so use that
     fault.retryAfter = new Date(xhr.getResponseHeader("Retry-After"));
+    // Adjust for the fact that their clock is skewed from ours
     var serverNow = new Date(xhr.getResponseHeader("Date"));
     var skewSeconds = (new Date() - serverNow) / 1000;
     fault.retryAfter.setSeconds(fault.retryAfter.getSeconds() + skewSeconds);
+    // The Retry-After is truncated compared to the retryAfter JSON string, so
+    // we may be missing up to .999 seconds of the message.  It doesn't hurt to
+    // wait a little longer than normal, so add a second for good measure.
+    fault.retryAfter.setSeconds(fault.retryAfter.getSeconds() + 1);
   }
   return fault;
 },
@@ -88,6 +93,7 @@ __csapi_client.EntityManager.prototype = {
     if (opts.type in {GET:1, POST:1}) opts.dataType = "json";
 
     var that = this;
+    console.log("AJAX " + opts.type + " " + opts.path);
     $.ajax({
       async: opts.async,
       type: opts.type,
@@ -333,12 +339,16 @@ __csapi_client.EntityManager.prototype = {
     var that = this;
     var handleNotification = function(notifyEvent) {
       if (notifyEvent.error) {
+        console.log("wait got an error");
         that.stopNotify(opts.entity, handleNotification);
         opts.fault(notifyEvent.fault);
       }
       else if (!that._isInFlux(opts.entity, notifyEvent.targetEntity)) {
+        console.log("wait is done waiting");
         that.stopNotify(opts.entity, handleNotification);
         opts.success(notifyEvent.targetEntity);
+      } else {
+        console.log("wait got notified and will keep waiting");
       }
     };
 

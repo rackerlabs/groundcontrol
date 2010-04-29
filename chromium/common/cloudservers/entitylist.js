@@ -94,14 +94,20 @@ __csapi_client.EntityList.prototype = {
    *     fault:CloudServersFault the fault that occurred
    */
   forEachAsync: function(opts) {
+    opts.complete = opts.complete || function() {};
+
     var that = this;
     var visitOneItem = function() {
       that._nextAsync({
         success: function(entity) {
-          opts.each(entity);
-          visitOneItem(); // keep visiting as long as it keeps working
+          if (entity) {
+            opts.each(entity);
+            visitOneItem(); // keep visiting as long as it keeps working
+          } else {
+            that.reset();
+            opts.complete();
+          }
         },
-        complete: opts.complete,
         fault: opts.fault
       });
     };
@@ -153,26 +159,34 @@ __csapi_client.EntityList.prototype = {
    *   fault?:function(fault) passed a CloudServersFault object upon error
    */
   _storeNextPage: function(opts) {
-    opts.success = opts.sucess || function() {};
+    opts.success = opts.success || function() {};
+    var numRemaining;
+
+    // If we specified a limit and we've read that many, we're done.
+    var done = false;
+    if (this._options.limit != undefined) {
+      var numConsumed = this._trueIndex - this._options.offset;
+      numRemaining = this._options.limit - numConsumed;
+      if (numRemaining <= 0)
+        done = true;
+    }
+    // If we gave no limit but the last fetched page wasn't huge, we're done.
+    else if (this._currentPage && this._currentPage.length < 200)
+      done = true;
+
+    if (done) {
+      this._currentPage = [];
+      this._nextPageIndex = 0;
+      opts.success();
+      return;
+    }
+
     // Fetch a page starting from this._trueIndex, our current offset.
     var requestPath = (this._options.detailed ? "detail" : "");
     var path_opts = [];
-    // TODO: getTime() works based on 1969 epoch, not 1970 epoch.
     path_opts.push("offset=" + this._trueIndex);
-    if (this._options.limit) {
-      var numConsumed = this._trueIndex - this._options.offset;
-      var numRemaining = this._options.limit - numConsumed;
-      if (numRemaining <= 0) {
-        // Save us the round trip to the server: we're done.
-        this._currentPage = [];
-        this._nextPageIndex = 0;
-        opts.success();
-        return;
-      }
-      // Note that this may be limit=0 if we've consumed our whole page;
-      // the server will then return an empty array to us.
+    if (this._options.limit)
       path_opts.push("limit=" + numRemaining);
-    }
     if (this._options.changes_since) {
       path_opts.push("changes-since=" + 
                      new Date(this._options.changes_since).getTime() / 1000);
@@ -180,6 +194,7 @@ __csapi_client.EntityList.prototype = {
     requestPath += "?" + path_opts.join("&");
 
     var that = this;
+    console.log("storenextpage requesting " + requestPath);
     that._entityManager._request({
       async: opts.async,
       path: requestPath,
