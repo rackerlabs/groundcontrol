@@ -1,93 +1,10 @@
-CloudService
-  does authentication
-  hides re-authentication
-  hides polling behind wait()
-  is a factory for managers
-
-EntityManager
-  handles a subclass of Entity
-  has subclasses
-  all CRUD should have an optional callback function which gets called once
-    the operation completes
-
-Entity
-  has subclasses
-
-EntityList
-  no subclasses
-  needs a eachAsync(function(entity)) so we aren't stuck blocking to loop
-    through the list.
-
-Fault
-
 api key: c36ec1e44e2e2947f8e155a3a122a358
-
-request({
-  type: "GET",
-  // full URL handled silently
-  path: id,
-  async: false,
-  // auth token handled silently
-  // accept:gzip handled silently
-  // 401 unauthorized handled silently -- retried a couple times
-  // 413 rate control handled silently -- (waited then retried) a couple times
-  success: function(json) {
-    // json.server;
-  },
-  error: function(fault) {
-    // fault.message, .details, .code
-  }
-})
-
-post({
-  path: id,
-  async: true,
-  success: function(json) {
-    // json.server
-  },
-  error: function(fault) {
-    // fault.message, .details, .code
-  }
-})
-
-put/delete({
-  path: id,
-  async: true,
-  success: function() {
-  },
-  error: function(fault) {
-    // fault.message, .details, code
-  }
-})
-
-ajax requests do this:
-  get post put or delete
-  sync or async
-  provide authentication token in header
-  provide Accept-Encoding: gzip in header if it works
-  handle 401 Unauthorized by re-authenticating then retrying
-  handle 413 Rate Control (+ Reply-After header) by setTimeout then retry
-    (only works for async or callback-based requests)
-  handle other 400 and 500 errors appropriately
-    all errors will contain a root element explaining what went wrong --
-    see dev guide for list, page 17
-    per the guide p17, it's OK to not distinguish b/w fault types; just make
-    everybody a cloudserversfault.  in JS i think this translates to, don't
-    worry about subclasses for each fault type; just fill in the code msg and
-    details and maybe retryAfter.
-
-
-$.ajax has access to request&response headers, and returns the xhr object
-so you can abort or monitor the request.
-
-xhr is forbidden, duh.
 
 when jsonp api exists, js bindings will be useful everywhere.  until then,
 people will have to proxy the requests.
 
 also, extensions can use it, and when it turns into a hosted app on
 rackspace, it won't be XHR anymore. (?)
-
 
 will need to handle localization myself, since chrome and ff do it
 differently.
@@ -103,3 +20,16 @@ localization: rel="__MSG_xyz" gets innertext filled by getMessage("xyz")?
 
 will be several files during development, but we'll want to ship it out as
 a single JS file at the end.
+
+Create should return as soon as it gets a response from the server, because
+the entity is mostly created at that point.  After that, you can wait() if you
+wish on the BUILD or whatever.  Maybe make an option to create()?
+
+notify maybe needs to be rewritten because you can't rely on the LM date of lists
+  (or maybe that's a bug in the API that needs fixing.)
+
+possible bug: if i get a 503 back, it's in XML, which barfs because i can't
+parse the JSON (of course).  Either make the API return JSON, or be able to
+handle 500s separately.
+
+get answers from jorge about 503 and delta()

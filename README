@@ -24,3 +24,20 @@ FILES
   chromium/         The Chromium extension
   firefox/          The Firefox extension
   chromium/common/  The code used by both extensions (FF symlinks to this)
+
+ROADMAP
+=======
+
+  The features we want to add, in rough order:
+
+  * EntityManager [done]
+  * EntityList    [almost done]
+  * Notifications [almost done]
+  * Basic ServerManager only supporting EntityManager CRUD [almost done]
+  * Basic UI to existing ServerManager
+  * Add the rest of ServerManager's features and add UI for them
+  * Other EntityManagers full support + UI
+  * i18n
+  * l10n
+  * Proxy support in Javascript binding to Cloud Servers API
+  * Split Javascript binding into its own project

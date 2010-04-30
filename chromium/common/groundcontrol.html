@@ -1,6 +1,24 @@
 <html>
   <head>
     <title>GroundControl</title>
+    <style>
+      body {
+        overflow-y:scroll;
+      }
+      .box {
+        border: 1px solid gray;
+        margin:5px;
+        padding:5px;
+      }
+      .leftside {
+        float:left;
+        width:400px;
+      }
+      #controls {
+        width:600px;
+        float:right;
+      }
+    </style>
     <script src="jquery/jquery-1.4.2.min.js"></script>
     <script src="functions.js"></script>
     <script src="cloudservers/service.js"></script>
@@ -11,11 +29,11 @@
     <script src="cloudservers/entitylist.js"></script>
     <script>
       $(function() {
-        $('#ajaxes').ajaxStart(function() { 
-          $(this).append("Started<br/>");
+        $('#ajaxes').append("Talking?: ").ajaxStart(function() { 
+          $(this).append("Y ");
           $(this).css("background", "#ddddff");
         }).ajaxStop(function() { 
-          $(this).append("Stopped<br/>");
+          $(this).append("N ");
           $(this).css("background", "white");
         });
 
@@ -24,58 +42,189 @@
           username: "gundlach",
           apiKey: "c36ec1e44e2e2947f8e155a3a122a358"
         });
-        $("#it").text("'service' object authenticated.");
+        $("#msg").text("'service' object authenticated.");
         servers = service.createServerManager();
+      });
 
-        $("<button>").text("Fetch").appendTo("#controls").click(function() {
+      function displayFault(fault) {
+        $("#msg").html("FAULT: " + JSON.stringify(fault));
+      }
+
+      function toHtml(obj) {
+        var html = "{<br/>";
+        for (var key in obj) {
+          if (typeof obj[key] == "object")
+            html += (key + ": " + toHtml(obj[key]) + "<br/>");
+          else
+            html += (key + ": " + obj[key] + "<br/>");
+        }
+        html = html + "}";
+        return html;
+      }
+
+      function repaint() {
+        singleEntity = singleEntity || {};
+        $("#response").html(toHtml(singleEntity));
+        $("span.entityId").text(singleEntity.id);
+      }
+
+      $(function() {
+        $("#fetch :button").click(function() {
+          var id = $("#fetch :text").val();
           servers.find({
-            id:186199, 
+            id:id, 
             success:function(entity) {
-              $("#it").append("Fetched " + entity.id + " OK.");
-              theEntity = entity;
+              $("#msg").html("Fetched.");
+              singleEntity = entity;
+              repaint();
             },
-            fault: function(fault) {
-              console.log("FAULT fetching: " + JSON.stringify(fault));
-            }
+            fault: displayFault
           });
-        }).after("<br/>");
+        });
 
-        $("<button>").text("Refresh").appendTo("#controls").click(function() {
+        $("#refresh :button").click(function() {
           servers.refresh({
-            entity:theEntity,
+            entity:singleEntity,
             success:function(entity) {
-              theEntity = entity;
-              $("#it").append("Refreshed " + entity.id + " OK.");
+              singleEntity = entity;
+              $("#msg").html("Refreshed.");
+              repaint();
             },
-            fault: function(fault) {
-              console.log("FAULT refreshing: " + JSON.stringify(fault));
-            }
+            fault: displayFault
           });
-        }).after("<br/>");
+        });
 
-        $("<input id='newName'>").appendTo("#controls");
+        $("#update :button").click(function() {
+          singleEntity.name = $("#update .serverName").val();
 
-        $("<button>").text("Update").appendTo("#controls").click(function() {
-          theEntity.name = $("#newName").val();
+          if ($("#update .serverPass").val().length != 0)
+            singleEntity.adminPass = $("#update .serverPass").val();
+
           servers.update({
-            entity:theEntity,
+            entity:singleEntity,
             success:function(entity) {
-              theEntity = entity;
-              $("#it").append("Updated " + entity.name + " OK.");
+              singleEntity = entity;
+              $("#msg").html("Updated.");
+              repaint();
             },
-            fault: function(fault) {
-              console.log("FAULT updating: " + JSON.stringify(fault));
-            }
+            fault: displayFault
           });
-        }).after("<br/>");
+        });
+
+        $("#wait :button").click(function() {
+          servers.wait({
+            entity:singleEntity,
+            success:function(entity) {
+              singleEntity = entity;
+              $("#msg").html("Done waiting.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#create :button").click(function() {
+          var newEntity = {
+            name: $("#create .serverName").val(),
+            imageId: parseInt($("#create .serverImageId").val()),
+            flavorId: parseInt($("#create .serverFlavorId").val()),
+            metadata: { testMetadata: $("#create .serverMetadataKey").val() }
+          };
+
+          servers.create({
+            entity:newEntity,
+            success:function(entity) {
+              singleEntity = entity;
+              $("#msg").html("Created.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#list :button").click(function() {
+          var lm = $("#list .serverLastModified").val();
+          if (lm.length == 0) lm = undefined;
+          var offset = $("#list .serverOffset").val();
+          if (offset.length == 0) offset = undefined;
+          var limit = $("#list .serverLimit").val();
+          if (limit.length == 0) limit = undefined;
+
+          if (lm)
+            var list = servers.createDeltaList(true, lm, offset, limit);
+          else
+            var list = servers.createList(true, offset, limit);
+
+          function handler(s) {
+            $("#response").append(toHtml(s));
+          }
+          $("#response").html("");
+          if ($("#list :radio:checked").val() == "async")
+          {
+            list.forEachAsync({
+              each: handler,
+              complete: function() { $("#response").append("DONE"); },
+              fault: displayFault
+            });
+          }
+          else {
+            try {
+              while (list.hasNext()) {
+                handler(list.next());
+              }
+              $("#response").append("DONE");
+            }
+            catch (fault) {
+              displayFault(fault);
+            }
+          }
+        });
 
       });
     </script>
   </head>
   <body>
-    <div id="controls"></div>
-    <div id="it"></div>
-    <div id="ajaxes"></div>
+    <div id="ajaxes" style="clear:left"></div>
+    <div class="leftside">
+      <div id="msg"></div>
+      <div>Response:</div>
+      <div id="response" style="font-size:x-small"></div>
+    </div>
+    <div id="controls">
+      <div id="fetch" class="control box">
+        Fetch ID: <input value="186199"/> <input type="button" value="Go"/>
+      </div>
+      <div id="refresh" class="control box">
+        Refresh ID <span class="entityId"></span>: <input type="button" value="Go"/>
+      </div>
+      <div id="update" class="control box">
+        Update ID <span class="entityId"></span>:<br/>
+        Name: <input class="serverName"/><br/>
+        Pass: <input class="serverPass"/><br/>
+        <input type="button" value="Go"/>
+      </div>
+      <div id="wait" class="control box">
+        Wait for ID <span class="entityId"></span> to be not in flux:
+        <input type="button" value="Go"/>
+      </div>
+      <div id="create" class="control box">
+        Create new server:<br/>
+        Name: <input class="serverName"/><br/>
+        Image ID : <input class="serverImageId"/><br/>
+        Flavor ID : <input class="serverFlavorId"/><br/>
+        Value for metadata key "testMetadata": <input class="serverMetadataKey"/><br/>
+        <input type="button" value="Go"/>
+      </div>
+      <div id="list" class="control box">
+        List servers<br/>
+        Since Last-Modified date of: (blank is OK) <input class="serverLastModified"/><br/>
+        Offset of: (blank is OK) <input class="serverOffset"/><br/>
+        Limit of: (blank is OK) <input class="serverLimit"/><br/>
+        <input type="radio" checked name="r" value="async"> Async<br/>
+        <input type="radio" name="r" value="sync"> Sync<br/>
+        <input type="button" value="Go"/>
+      </div>
+    </div>
   </body>
 </html>
 

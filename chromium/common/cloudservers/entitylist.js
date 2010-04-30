@@ -75,9 +75,9 @@ __csapi_client.EntityList.prototype = {
   /**
    * Asynchronously call each() for each item in the list, then call success().
    *
-   * If next() has been called one or more times on the list and reset() has
-   * not been called since that time, forEachAsync will begin with the
-   * following entity.
+   * If next() or forEachAsync() has been called one or more times on the list
+   * and reset() has not been called since that time, forEachAsync will begin
+   * with the following entity.
    *
    * Call fault() and abort the iteration if there is a problem communicating
    * with the server.
@@ -104,7 +104,6 @@ __csapi_client.EntityList.prototype = {
             opts.each(entity);
             visitOneItem(); // keep visiting as long as it keeps working
           } else {
-            that.reset();
             opts.complete();
           }
         },
@@ -199,15 +198,18 @@ __csapi_client.EntityList.prototype = {
       async: opts.async,
       path: requestPath,
       success: function(json, status, xhr) {
-        if (status == 304) { // not modified: no changes.
+        if (xhr.status == 304) { // not modified: no changes.
           that._currentPage = [];
         }
         else {
+          that._lastModified = xhr.getResponseHeader("Last-Modified");
           for (var key in json) break; // grab the only key name
           that._currentPage = json[key];
+          for (var i = 0; i < that._currentPage.length; i++) {
+            that._currentPage[i]._lastModified = that._lastModified;
+          }
         }
         that._nextPageIndex = 0;
-        that._lastModified = xhr.getResponseHeader("Last-Modified");
         opts.success();
       },
       fault: opts.fault
@@ -233,7 +235,7 @@ __csapi_client.EntityList.prototype = {
     }
     // No page yet or beyond a (non-empty) page?  Fetch a page and recurse.
     var out_fault = undefined;
-    self._storeNextPage({
+    this._storeNextPage({
       async: false,
       fault: function(fault) {
         out_fault = fault;
@@ -242,7 +244,7 @@ __csapi_client.EntityList.prototype = {
     if (out_fault)
       throw out_fault;
     else
-      return hasNext();
+      return this.hasNext();
   },
 
   /**

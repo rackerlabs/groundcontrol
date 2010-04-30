@@ -125,6 +125,7 @@ __csapi_client.EntityManager.prototype = {
         }
         // Rate limited --> wait, then try again - several times
         if (xhr.status == 413) {
+          console.log("413; retrying in a bit.");
           var faultData = __csapi_client.EntityManager._parseFault(xhr);
           if (_retryData.rateLimitedTimes > 5) { // give up
             opts.fault(faultData);
@@ -137,8 +138,10 @@ __csapi_client.EntityManager.prototype = {
             } else {
               // We're synchronous: no choice but to spin until the timeout
               // has passed.  Yuck, yuck, yuck.
-              var stopAt = fault.retryAfter;
+              console.log("\"Sleep\"ing...");
+              var stopAt = faultData.retryAfter;
               while (new Date() < stopAt) for (var i = 0; i < 100000; i++) {}
+              console.log("Awake!");
               that._request(opts, _retryData);
             }
           }

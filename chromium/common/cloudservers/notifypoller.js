@@ -21,7 +21,7 @@ __csapi_client.NotifyPoller = function(entityManager) {
 __csapi_client.NotifyPoller.prototype = {
   __proto__: undefined,
 
-  _pollIntervalMs: 30000, // TODO set this reasonably somehow
+  _pollIntervalMs: 10000, // TODO set this reasonably somehow
 
   /**
    * Registers a callback to be run when entity changes on the server.
@@ -51,16 +51,16 @@ __csapi_client.NotifyPoller.prototype = {
     console.log("Registering entity " + entity.id);
     var otherListenersExist = this._someoneIsListening();
 
-    this._listeners[entity.id] = this._listeners[entity.id] || [];
     // Disallow multiple registration.
-    if (this._listeners[entity.id].indexOf(callback) != -1)
+    var list = this._listeners[entity.id] || [];
+    if (list.indexOf(callback) != -1)
       return;
-
-    this._listeners[entity.id].push(callback);
 
     if (!otherListenersExist) {
       // Case 1 above: we're not polling, so start.
       console.log("Case 1");
+      this._listeners[entity.id] = this._listeners[entity.id] || [];
+      this._listeners[entity.id].push(callback);
       this._pollForChangesSince = entity._lastModified;
       this._pollNow();
     }
@@ -69,6 +69,8 @@ __csapi_client.NotifyPoller.prototype = {
       that._entityManager.refresh({
         entity: entity,
         success: function(newEntity) {
+          that._listeners[entity.id] = that._listeners[entity.id] || [];
+          that._listeners[entity.id].push(callback);
           console.log("notify's refresh call was a success");
           if (entity._lastModified >= newEntity._lastModified) {
             console.log("Case 2");
@@ -89,7 +91,6 @@ __csapi_client.NotifyPoller.prototype = {
         fault: function(fault) {
           console.log("notify had a fault");
           // An excellent excuse to not deal with this guy at all!
-          that.deregister(entity, callback);
           callback({error:true, fault:fault});
         }
       });
@@ -143,6 +144,8 @@ __csapi_client.NotifyPoller.prototype = {
         if (!that._listeners[changedEntity.id])
           return;
 
+        console.log("Entity " + changedEntity.id + 
+                    " better have >= 1 registered callbacks:");
         // avoid list mutation when callbacks deregister themselves
         var callbacksCopy = that._listeners[changedEntity.id].slice();
 
