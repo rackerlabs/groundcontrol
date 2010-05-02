@@ -8,15 +8,6 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 
 __csapi_client.NotifyPoller = function(entityManager) {
   this._entityManager = entityManager;
-
-  // A pointer, if any, to the setTimeout() function that will soon poll.
-  this._pollTimerId = undefined;
-
-  /**
-   * A map from entity ID to an array of callbacks to execute each time the
-   *     entity is updated on the server.
-   */
-  this._listeners = {};
 }
 __csapi_client.NotifyPoller.prototype = {
   __proto__: undefined,
@@ -24,77 +15,40 @@ __csapi_client.NotifyPoller.prototype = {
   _pollIntervalMs: 10000, // TODO set this reasonably somehow
 
   /**
+   * Return poll and callback data about the given entity.
+   */
+  _data: function(entity) {
+    this._dataMap = this._dataMap || {};
+
+    // We have to clean up stale entries occasionally; so do it now.
+    for (id in this._dataMap) {
+      if (this._dataMap[id].callbacks.length == 0)
+        delete this._dataMap[id];
+    }
+
+    if (this._dataMap[entity.id] == undefined) {
+      this._dataMap[entity.id] = {
+        latestKnownEntity: entity, // latest version we're aware of
+        callbacks: [], // maps of {fn, latestKnownEntity} that the fn knows of
+        currentlyWaitingForResponse: false, // in the middle of a server call?
+        pollTimerId: undefined // exists if a timer between polls is running
+      };
+    }
+    return this._dataMap[entity.id];
+  },
+
+  /**
    * Registers a callback to be run when entity changes on the server.
-   * If callback is already registered for this entity, does not reregister.
    *
    * entity:Entity the entity to watch for a change.
    * callback:function as passed to EntityManager.notify().
    */
   register: function(entity, callback) {
-    // Check immediately to see if the entity can get an immediate callback.
-    // There are a few cases to consider to get this right and avoid race
-    // conditions:
-    //
-    //   1. Nobody else is listening: Start polling as of the entity's
-    //      lastModified date.
-    //   2. Others are listening, and the entity has not been updated on the
-    //      server since it was fetched: just keep polling as usual.
-    //   3. Others are listening, the entity has been updated on the server
-    //      since it was fetched, and the update was after our upcoming poll's
-    //      changes_since time: do our next poll right now, so the callback
-    //      will be called.
-    //   4. Others are listening, the entity has been updated on the server
-    //      since it was fetched, and the update was before our upcoming poll's
-    //      changes_since time: call the callback immediately with the updated
-    //      version, then keep polling as usual to watch for further changes.
- 
     console.log("Registering entity " + entity.id);
-    var otherListenersExist = this._someoneIsListening();
 
-    // Disallow multiple registration.
-    var list = this._listeners[entity.id] || [];
-    if (list.indexOf(callback) != -1)
-      return;
-
-    if (!otherListenersExist) {
-      // Case 1 above: we're not polling, so start.
-      console.log("Case 1");
-      this._listeners[entity.id] = this._listeners[entity.id] || [];
-      this._listeners[entity.id].push(callback);
-      this._pollForChangesSince = entity._lastModified;
-      this._pollNow();
-    }
-    else {
-      var that = this;
-      that._entityManager.refresh({
-        entity: entity,
-        success: function(newEntity) {
-          that._listeners[entity.id] = that._listeners[entity.id] || [];
-          that._listeners[entity.id].push(callback);
-          console.log("notify's refresh call was a success");
-          if (entity._lastModified >= newEntity._lastModified) {
-            console.log("Case 2");
-            // Case 2 above: newEntity hasn't changed, so just poll as usual.
-          }
-          else if (newEntity._lastModified > that._pollForChangesSince) {
-            console.log("Case 3");
-            // Case 3: newEntity is updated, but our next poll will catch it.
-            window.clearTimeout(that._pollTimerId);
-            that._pollNow();
-          }
-          else {
-            console.log("Case 4");
-            // Case 4: newEntity is updated, and our next poll won't catch it.
-            callback({error:false, targetEntity:newEntity});
-          }
-        },
-        fault: function(fault) {
-          console.log("notify had a fault");
-          // An excellent excuse to not deal with this guy at all!
-          callback({error:true, fault:fault});
-        }
-      });
-    }
+    var data = this._data(entity);
+    data.callbacks.push({ fn: callback, latestKnownEntity: entity });
+    this._pollNow(data);
   },
 
   // Stop calling callback (which was earlier passed to register()) for the
@@ -102,73 +56,76 @@ __csapi_client.NotifyPoller.prototype = {
   // register()).
   deregister: function(entity, callback) {
     console.log("Denotifying for entity " + entity.id);
-    var list = this._listeners[entity.id] || [];
 
-    var where = list.indexOf(callback);
-    if (where != -1)
-      list.splice(where, 1);
-
-    if (list.length == 0)
-      delete this._listeners[entity.id];
-  },
-
-  // True if there is at least one registered callback.
-  _someoneIsListening: function() {
-    for (var entry in this._listeners)
-      return true;
-    return false;
-  },
-
-  // Send fault to all listeners and deregister them.
-  _faultAndDeregisterEveryone: function(fault) {
-    var deadListeners = this._listeners;
-    this._listeners = {}; // deregister everybody
-
-    for (var id in deadListeners) {
-      for (var i = 0; i < deadListeners[id].length; i++) {
-        deadListeners[id][i]({error:true, fault: fault});
-      }
-    }
-  },
-
-  // Check for new entities on the server, and notify interested parties.
-  // Then register a callback to do it again in a little while.
-  _pollNow: function() {
-    console.log("Entering pollNow");
-    var that = this;
-
-    var list = that._entityManager.createDeltaList(true, 
-                                                   that._pollForChangesSince);
-    list.forEachAsync({
-      each: function(changedEntity) {
-        if (!that._listeners[changedEntity.id])
-          return;
-
-        console.log("Entity " + changedEntity.id + 
-                    " better have >= 1 registered callbacks:");
-        // avoid list mutation when callbacks deregister themselves
-        var callbacksCopy = that._listeners[changedEntity.id].slice();
-
-        for (var i=0; i < callbacksCopy.length; i++) {
-          console.log("Notifying callback " + i + " for entity " + 
-                      changedEntity.id);
-          callbacksCopy[i]({error:false, targetEntity:changedEntity});
-        }
-      },
-      complete: function() {
-        if (that._someoneIsListening()) {
-          console.log("NOTIFY: will run again; we still have listeners");
-          // Poll again later
-          that._pollForChangesSince = list.getLastModified();
-          that._pollTimerId = window.setTimeout(
-            function() { that._pollNow(); },
-            that._pollIntervalMs);
-        } else {
-          console.log("NOTIFY: is done; we have no listeners");
-        }
-      },
-      fault: that._faultAndDeregisterEveryone
+    var data = this._data(entity);
+    data.callbacks = data.callbacks.filter(function(entry) {
+      return entry.fn != callback;
     });
+  },
 
+  // Check for an update to the entity on the server, and notify any callbacks
+  // who didn't already know about the update.  Then register a callback to do
+  // it again in a little while.
+  _pollNow: function(data) {
+    if (data.callbacks.length == 0)
+      return; // Nobody cares
+
+    if (data.currentlyWaitingForResponse)
+      return; // already polling, so hold your horses
+
+    // If a timer plans to poll in the future, abort it -- we're polling now.
+    if (data.pollTimerId) {
+      window.clearTimeout(data.pollTimerId);
+      delete data.pollTimerId;
+    }
+
+    console.log("Polling for entity " + data.latestKnownEntity.id);
+
+    data.currentlyWaitingForResponse = true;
+
+    var that = this;
+    that._entityManager.refresh({
+      entity: data.latestKnownEntity,
+      success: function(newEntity) {
+        data.currentlyWaitingForResponse = false;
+        data.latestKnownEntity = newEntity;
+
+        function is_stale(oldEntity) {
+          var hisTimestamp = oldEntity._lastModified;
+          var newTimestamp = data.latestKnownEntity._lastModified;
+          return (new Date(hisTimestamp) < new Date(newTimestamp));
+        }
+
+        // Avoid list mutation if callbacks deregister themselves
+        var callbacksCopy = data.callbacks.slice();
+        for (var i = 0; i < callbacksCopy.length; i++) {
+          if (is_stale(callbacksCopy[i].latestKnownEntity)) {
+            console.log("Notifying callback " + i + " for id " + newEntity.id);
+            callbacksCopy[i].latestKnownEntity = newEntity;
+            callbacksCopy[i].fn({error:false, targetEntity:newEntity});
+          }
+          else {
+            var cM = callbacksCopy[i].latestKnownEntity._lastModified;
+            var lM = data.latestKnownEntity._lastModified;
+            console.log("callback " + i + " for entity " + newEntity.id + 
+                        " not notified, because " + cM + " >= " + lM);
+          }
+        }
+
+        data.pollTimerId = window.setTimeout(function() { 
+          delete data.pollTimerId;
+          that._pollNow(data); 
+        }, that._pollIntervalMs);
+      },
+      fault: function(fault) {
+        data.currentlyWaitingForResponse = false;
+        var deregistered = data.callbacks;
+        data.callbacks = []; // deregister them
+
+        for (var i = 0; i < deregistered.length; i++) {
+          deregistered[i].fn({error:true, fault:fault});
+        }
+      }
+    });
   }
 }

@@ -102,6 +102,7 @@ __csapi_client.EntityManager.prototype = {
       data: data,
       processData: opts.processData,
       contentType: opts.contentType,
+      cache: false,
       beforeSend: function(xhr) {
         xhr.setRequestHeader("X-Auth-Token", that._service._authToken);
         opts.beforeSend(xhr);
