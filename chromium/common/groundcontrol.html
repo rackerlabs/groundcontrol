@@ -62,6 +62,7 @@
         return html;
       }
 
+      var singleEntity;
       function repaint() {
         singleEntity = singleEntity || {};
         $("#response").html(toHtml(singleEntity));
@@ -98,7 +99,7 @@
           servers.remove({
             entity:singleEntity,
             success:function() {
-              delete singleEntity;
+              singleEntity = undefined;
               $("#msg").html("Removed.");
               repaint();
             },
