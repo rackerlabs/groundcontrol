@@ -11,6 +11,8 @@
 // and behaved like find(), notify() cannot tell when changes occur and won't
 // notify interested parties.
 
+// TODO: delete returns a 202 but somehow thinks that's a fault.
+
 // TODO: only need to do this once after we roll all our files together.
 if (typeof(com) == "undefined")
   com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
@@ -187,12 +189,17 @@ __csapi_client.EntityManager.prototype = {
       type: "POST",
       path: "",
       data: that._dataForCreate(opts.entity),
-      success: function(json) {
+      success: function(json, status, xhr) {
         if (!opts.success) // no need to poll
           return;
 
         // Suck out the new entity so we have an id to wait on
         for (var key in json) { var newEntity = json[key]; break; }
+        // TODO: They don't give us a last-modified date, but a good guess is
+        // the current Date on the server.  If they start sending Last-Modified
+        // back as I have requested, use that instead: the Date is not really
+        // accurate, and not a supported API.
+        newEntity._lastModified = xhr.getResponseHeader("Date");
         // Wait for completion, then call success callback
         that.wait({
           entity: newEntity,
