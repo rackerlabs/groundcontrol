@@ -1,9 +1,20 @@
+// TODO: There is a bug in the Cloud Servers API as of 5/1/2010.  If an
+// entity's status changes on the server, e.g. from PASSWORD to ACTIVE for
+// Server entities, the Last-Modified date is not changed.  Thus, refresh()
+// receives a 304 Not Modified when polling for status changes using
+// If-Modified-Since per the language binding guide's instructions.
+//
+// An example consequence of the bug is that wait(), which relies on notify()
+// which relies on refresh(), never gets informed of the completion of a Server
+// password change, because notify() only informs listeners each time
+// Last-Modified is updated.  Even if refresh() stopped using If-Modified-Since
+// and behaved like find(), notify() cannot tell when changes occur and won't
+// notify interested parties.
+
 // TODO: only need to do this once after we roll all our files together.
 if (typeof(com) == "undefined")
   com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
 __csapi_client = com.rackspace.cloud.servers.api.client;
-
-// TODO: test rate limiting retries
 
 /**
  * Base EntityManager class.  Subclasses must implement _dataForUpdate(),
