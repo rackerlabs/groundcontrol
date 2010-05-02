@@ -94,6 +94,18 @@
           });
         });
 
+        $("#remove :button").click(function() {
+          servers.remove({
+            entity:singleEntity,
+            success:function() {
+              delete singleEntity;
+              $("#msg").html("Removed.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
         $("#update :button").click(function() {
           singleEntity.name = $("#update .serverName").val();
 
@@ -206,6 +218,9 @@
       <div id="wait" class="control box">
         Wait for ID <span class="entityId"></span> to be not in flux:
         <input type="button" value="Go"/>
+      </div>
+      <div id="remove" class="control box">
+        Remove ID <span class="entityId"></span>: <input type="button" value="Go"/>
       </div>
       <div id="create" class="control box">
         Create new server:<br/>
