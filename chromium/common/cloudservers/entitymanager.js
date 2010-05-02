@@ -11,8 +11,6 @@
 // and behaved like find(), notify() cannot tell when changes occur and won't
 // notify interested parties.
 
-// TODO: delete returns a 202 but somehow thinks that's a fault.
-
 // TODO: only need to do this once after we roll all our files together.
 if (typeof(com) == "undefined")
   com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
@@ -418,7 +416,12 @@ __csapi_client.EntityManager.prototype = {
   /**
    * Return a new list of entities.
    *
-   * TODO: fill in options from EntityList once they shake out
+   * detailed:bool true if the entities should contain all information; false
+   *     if they should only contain name and id.
+   * offset?:integer the offset into the entities at which to start the list.
+   *     Defaults to zero.
+   * limit?:integer the maximum number of items to return.  Defaults to
+   *     no limit.
    */
   createList: function(detailed, offset, limit) {
     return this.createDeltaList(detailed, undefined, offset, limit);
@@ -427,7 +430,16 @@ __csapi_client.EntityManager.prototype = {
   /**
    * Return a new list of entities modified since changes_since.
    *
-   * TODO: fill in options from EntityList once they shake out
+   * detailed:bool true if the entities should contain all information; false
+   *     if they should only contain name and id.
+   * changes_since: the time after which an entity must have been modified
+   *     in order to appear in the list.  You should only pass in
+   *     Last-Modified header values as reported by the server.  Defaults to
+   *     the beginning of time.
+   * offset?:integer the offset into the entities at which to start the list.
+   *     Defaults to zero.
+   * limit?:integer the maximum number of items to return.  Defaults to
+   *     no limit.
    */
   createDeltaList: function(detailed, changes_since, offset, limit) {
     return new __csapi_client.EntityList(this, {

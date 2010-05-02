@@ -31,12 +31,13 @@ ROADMAP
   The features we want to add, in rough order:
 
   * EntityManager [done]
-  * EntityList    [almost done]
-  * Notifications [almost done]
-  * Basic ServerManager only supporting EntityManager CRUD [almost done]
-  * Basic UI to existing ServerManager
+  * EntityList    [done]
+  * Notifications [done]
+  * Basic ServerManager only supporting EntityManager CRUD [done]
+  * Basic UI to existing ServerManager [done]
   * Add the rest of ServerManager's features and add UI for them
   * Other EntityManagers full support + UI
+  * Non-sucky UI
   * i18n
   * l10n
   * Proxy support in Javascript binding to Cloud Servers API
