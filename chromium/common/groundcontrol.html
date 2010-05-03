@@ -2,13 +2,11 @@
   <head>
     <title>GroundControl</title>
     <style>
-      body {
-        overflow-y:scroll;
-      }
       .box {
         border: 1px solid gray;
         margin:5px;
         padding:5px;
+        background: white;
       }
       .leftside {
         float:left;
@@ -16,7 +14,18 @@
       }
       #controls {
         width:600px;
+        height: 90%;
         float:right;
+        overflow-y:scroll;
+        background: #ddddff;
+        border: 2px solid #222222;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+      }
+      #ajaxes {
+        clear:left;
+        border: 1px solid black;
+        padding-left:5px;
       }
     </style>
     <script src="jquery/jquery-1.4.2.min.js"></script>
@@ -27,6 +36,7 @@
     <script src="cloudservers/servermanager.js"></script>
     <script src="cloudservers/notifypoller.js"></script>
     <script src="cloudservers/entitylist.js"></script>
+    <script src="cloudservers/backupschedule.js"></script>
     <script>
       $(function() {
         $('#ajaxes').append("Talking?: ").ajaxStart(function() { 
@@ -193,11 +203,103 @@
           }
         });
 
+        $("#reboot :button").click(function() {
+          servers.reboot({
+            entity:singleEntity,
+            hard: $(this).val() == "Hard",
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Rebooted.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#rebuild :button").click(function() {
+          servers.rebuild({
+            entity:singleEntity,
+            imageId: parseInt($("#rebuild :text").val()),
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Rebuilt.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#resize :button").click(function() {
+          servers.resize({
+            entity:singleEntity,
+            flavorId: parseInt($("#resize :text").val()),
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Resized.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#confirmresize :button").click(function() {
+          servers.confirmResize({
+            entity:singleEntity,
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Resize confirmed.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#revertresize :button").click(function() {
+          servers.revertResize({
+            entity:singleEntity,
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Resize reverted.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#getbackupschedule :button").click(function() {
+          servers.getSchedule({
+            entity:singleEntity,
+            success:function(schedule) {
+              $("#msg").html("Fetched backup schedule.");
+              $("#response").html(toHtml(schedule)).append("DONE");
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#setbackupschedule :button").click(function() {
+          var weekly = $("#setbackupschedule .scheduleWeekly").val();
+          var daily = $("#setbackupschedule .scheduleDaily").val();
+          var enabled = $("#setbackupschedule .scheduleEnabled").val();
+          servers.setSchedule({
+            entity:singleEntity,
+            weekly: weekly.length > 0 ? parseInt(weekly) : undefined,
+            daily: daily.length > 0 ? parseInt(daily) : undefined,
+            enabled: enabled.length > 0 ? (enabled == 'y') : undefined,
+            success:function(newEntity) {
+              theEntity = newEntity;
+              $("#msg").html("Set backup schedule for the server.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
       });
     </script>
   </head>
   <body>
-    <div id="ajaxes" style="clear:left"></div>
+    <div id="ajaxes"></div>
     <div class="leftside">
       <div id="msg"></div>
       <div>Response:</div>
@@ -205,7 +307,7 @@
     </div>
     <div id="controls">
       <div id="fetch" class="control box">
-        Fetch ID: <input value="186199"/> <input type="button" value="Go"/>
+        Fetch ID: <input value="186177"/> <input type="button" value="Go"/>
       </div>
       <div id="refresh" class="control box">
         Refresh ID <span class="entityId"></span>: <input type="button" value="Go"/>
@@ -228,16 +330,51 @@
         Name: <input class="serverName"/><br/>
         Image ID : <input class="serverImageId"/><br/>
         Flavor ID : <input class="serverFlavorId"/><br/>
-        Value for metadata key "testMetadata": <input class="serverMetadataKey"/><br/>
+        Value for metadata (blank is OK): <input class="serverMetadataKey"/><br/>
         <input type="button" value="Go"/>
       </div>
       <div id="list" class="control box">
         List servers<br/>
-        Since Last-Modified date of: (blank is OK) <input class="serverLastModified"/><br/>
+        Since Last-Modified date of: (blank is OK) 
+        <input class="serverLastModified"/><br/>
         Offset of: (blank is OK) <input class="serverOffset"/><br/>
         Limit of: (blank is OK) <input class="serverLimit"/><br/>
         <input type="radio" checked name="r" value="async"> Async<br/>
         <input type="radio" name="r" value="sync"> Sync<br/>
+        <input type="button" value="Go"/>
+      </div>
+      <div id="reboot" class="control box">
+        Reboot ID <span class="entityId"></span>:
+        <input type="button" value="Hard"/>
+        <input type="button" value="Soft"/>
+      </div>
+      <div id="rebuild" class="control box">
+        Rebuild ID <span class="entityId"></span>:
+        New imageId = <input />
+        <input type="button" value="Go"/>
+      </div>
+      <div id="resize" class="control box">
+        Resize ID <span class="entityId"></span>:
+        New flavorId = <input />
+        <input type="button" value="Go"/>
+      </div>
+      <div id="confirmresize" class="control box">
+        Confirm resize for ID <span class="entityId"></span>:
+        <input type="button" value="Go"/>
+      </div>
+      <div id="revertresize" class="control box">
+        Revert resize for ID <span class="entityId"></span>:
+        <input type="button" value="Go"/>
+      </div>
+      <div id="getbackupschedule" class="control box">
+        Get backup schedule for ID <span class="entityId"></span>:
+        <input type="button" value="Go"/>
+      </div>
+      <div id="setbackupschedule" class="control box">
+        Set backup schedule for ID <span class="entityId"></span>:<br/>
+        Day of the week (optional): <input class="scheduleWeekly"><br/>
+        Hour of the day (optional): <input class="scheduleDaily"><br/>
+        Enabled? (y/n) (optional): <input class="scheduleEnabled"><br/>
         <input type="button" value="Go"/>
       </div>
     </div>

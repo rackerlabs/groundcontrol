@@ -225,7 +225,7 @@ __csapi_client.ServerManager.prototype = {
    *       and two hours hence.  For example, 14 and 15 both mean that backups
    *       should occur some time between 2pm and 4pm GMT.  Defaults to not
    *       performing daily backups.
-   *   enabled?:boolean Defaults to false.  If it is false, or if weekly and
+   *   enabled?:boolean Defaults to true.  If it is false, or if weekly and
    *       daily are both unspecified, backups will not be performed.
    *   success?:function(server) called after the schedule has been set.
    *     server:Entity the updated server.
@@ -236,7 +236,7 @@ __csapi_client.ServerManager.prototype = {
     var BS = __csapi_client.BackupSchedule;
     opts.data = {
       backupSchedule: {
-        enabled: opts.enabled || true,
+        enabled: (opts.enabled != undefined ? opts.enabled : true),
         weekly: BS.dayIntegerToString(opts.weekly),
         daily: BS.hourIntegerToString(opts.daily)
       }
@@ -274,7 +274,7 @@ __csapi_client.ServerManager.prototype = {
       success: function(json) {
         var BS = __csapi_client.BackupSchedule;
         var result = {
-          enabled: bs.enabled,
+          enabled: json.backupSchedule.enabled,
           weekly: BS.dayStringToInteger(json.backupSchedule.weekly),
           daily: BS.hourStringToInteger(json.backupSchedule.daily)
         }
