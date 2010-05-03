@@ -2,7 +2,8 @@
 // entity's status changes on the server, e.g. from PASSWORD to ACTIVE for
 // Server entities, the Last-Modified date is not changed.  Thus, refresh()
 // receives a 304 Not Modified when polling for status changes using
-// If-Modified-Since per the language binding guide's instructions.
+// If-Modified-Since per the language binding guide's instructions.  This
+// is a known bug per Jorge and is being addressed.
 //
 // An example consequence of the bug is that wait(), which relies on notify()
 // which relies on refresh(), never gets informed of the completion of a Server
@@ -384,7 +385,19 @@ __csapi_client.EntityManager.prototype = {
       }
     };
 
-    that.notify(opts.entity, handleNotification);
+    // Since notify only calls callbacks when LastModified is updated, and
+    // the entity may be up to date on the server, force a refresh once
+    // before starting notification.
+    that.refresh({
+      entity: opts.entity,
+      fault: opts.fault,
+      success: function(updatedEntity) {
+        if (!that._isInFlux(opts.entity, updatedEntity))
+          opts.success(updatedEntity);
+        else
+          that.notify(opts.entity, handleNotification);
+      }
+    });
   },
 
   /**
