@@ -19,7 +19,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 
 /**
  * Base EntityManager class.  Subclasses must implement _dataForUpdate(),
- * _dataForCreate, and _isInFlux(); see below for usage.
+ * _dataForCreate, and _doneWaiting(); see below for usage.
  *
  * service:CloudServersService is the service that created this manager.
  * apiRoot:string is the suffix to append to the service's management URL
@@ -376,7 +376,7 @@ __csapi_client.EntityManager.prototype = {
         that.stopNotify(opts.entity, handleNotification);
         opts.fault(notifyEvent.fault);
       }
-      else if (!that._isInFlux(opts.entity, notifyEvent.targetEntity)) {
+      else if (!that._doneWaiting(opts.entity, notifyEvent.targetEntity)) {
         console.log("wait is done waiting");
         that.stopNotify(opts.entity, handleNotification);
         opts.success(notifyEvent.targetEntity);
@@ -385,14 +385,14 @@ __csapi_client.EntityManager.prototype = {
       }
     };
 
-    // Since notify only calls callbacks when LastModified is updated, and
-    // the entity may be up to date on the server, force a refresh once
-    // before starting notification.
+    // Since notify() only calls callbacks when LastModified is updated, and
+    // opts.entity may be the latest, stable version, check explicitly once via
+    // refresh() before registering for notifications.
     that.refresh({
       entity: opts.entity,
       fault: opts.fault,
       success: function(updatedEntity) {
-        if (!that._isInFlux(opts.entity, updatedEntity))
+        if (!that._doneWaiting(opts.entity, updatedEntity))
           opts.success(updatedEntity);
         else
           that.notify(opts.entity, handleNotification);

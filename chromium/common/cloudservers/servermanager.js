@@ -34,10 +34,10 @@ __csapi_client.ServerManager.prototype = {
    * Return true if the given entity is in the middle of completing an
    * operation on the server (based on its local attributes).
    */
-  _isInFlux: function(oldEntity, newEntity) {
-    // TODO: could EntityManager implement this as != ACTIVE/ERROR, so that
-    // most don't have to customize it?  see binding guide p12
-    return newEntity.status != "ACTIVE" && newEntity.status != "ERROR";
+  _doneWaiting: function(oldEntity, newEntity) {
+    return (newEntity.status in {
+      ACTIVE:1, SUSPENDED:1, VERIFY_RESIZE:1, DELETED:1, ERROR:1, UNKNOWN:1
+    });
   },
 
   /**
@@ -84,7 +84,7 @@ __csapi_client.ServerManager.prototype = {
    *     fault:CloudServersFault details about the problem.
    */
   reboot: function(opts) {
-    opts.data = { reboot: { type: (opts.data.hard ? "HARD" : "SOFT") } };
+    opts.data = { reboot: { type: (opts.hard ? "HARD" : "SOFT") } };
     this._action(opts);
   },
 
