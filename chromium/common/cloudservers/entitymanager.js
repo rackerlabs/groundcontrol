@@ -376,7 +376,7 @@ __csapi_client.EntityManager.prototype = {
         that.stopNotify(opts.entity, handleNotification);
         opts.fault(notifyEvent.fault);
       }
-      else if (!that._doneWaiting(opts.entity, notifyEvent.targetEntity)) {
+      else if (that._doneWaiting(opts.entity, notifyEvent.targetEntity)) {
         console.log("wait is done waiting");
         that.stopNotify(opts.entity, handleNotification);
         opts.success(notifyEvent.targetEntity);
@@ -392,7 +392,7 @@ __csapi_client.EntityManager.prototype = {
       entity: opts.entity,
       fault: opts.fault,
       success: function(updatedEntity) {
-        if (!that._doneWaiting(opts.entity, updatedEntity))
+        if (that._doneWaiting(opts.entity, updatedEntity))
           opts.success(updatedEntity);
         else
           that.notify(opts.entity, handleNotification);

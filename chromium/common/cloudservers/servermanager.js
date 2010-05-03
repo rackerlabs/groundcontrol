@@ -31,7 +31,7 @@ __csapi_client.ServerManager.prototype = {
   },
 
   /**
-   * Return true if the given entity is in the middle of completing an
+   * Return false if the given entity is in the middle of completing an
    * operation on the server (based on its local attributes).
    */
   _doneWaiting: function(oldEntity, newEntity) {
