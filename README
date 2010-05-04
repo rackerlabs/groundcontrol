@@ -36,7 +36,7 @@ ROADMAP
   * Basic ServerManager only supporting EntityManager CRUD [done]
   * Basic UI to existing ServerManager [done]
   * Add the rest of ServerManager's features and add UI for them [done]
-  * Other EntityManagers full support + UI
+  * Other EntityManagers full support [done] + UI [not done]
   * Non-sucky UI
   * i18n
   * l10n

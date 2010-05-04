@@ -22,10 +22,13 @@
         -webkit-border-radius: 5px;
         -moz-border-radius: 5px;
       }
-      #ajaxes {
-        clear:left;
-        border: 1px solid black;
-        padding-left:5px;
+      #msg {
+        margin: 10px;
+        padding: 10px;
+        -webkit-border-radius:10px;
+        -moz-border-radius:10px;
+        background: #ff7;
+        border: 2px solid #886;
       }
     </style>
     <script src="jquery/jquery-1.4.2.min.js"></script>
@@ -41,24 +44,6 @@
     <script src="cloudservers/entitylist.js"></script>
     <script src="cloudservers/backupschedule.js"></script>
     <script>
-      $(function() {
-        $('#ajaxes').append("Talking?: ").ajaxStart(function() { 
-          $(this).append("Y ");
-          $(this).css("background", "#ddddff");
-        }).ajaxStop(function() { 
-          $(this).append("N ");
-          $(this).css("background", "white");
-        });
-
-        var client = com.rackspace.cloud.servers.api.client;
-        service = new client.CloudServersService({
-          username: "gundlach",
-          apiKey: "c36ec1e44e2e2947f8e155a3a122a358"
-        });
-        $("#msg").text("'service' object authenticated.");
-        servers = service.createServerManager();
-      });
-
       function displayFault(fault) {
         $("#msg").html("FAULT: " + JSON.stringify(fault));
       }
@@ -79,10 +64,48 @@
       function repaint() {
         singleEntity = singleEntity || {};
         $("#response").html(toHtml(singleEntity));
-        $("span.entityId").text(singleEntity.id);
+        if (singleEntity.id) {
+          $("span.entityId").
+            text(singleEntity.id).
+            closest("div").
+            show();
+        }
+        else {
+          $("span.entityId").
+            closest("div").
+            hide();
+        }
       }
 
       $(function() {
+
+        $("div").hide();
+        $("div#login").show();
+
+        $("#msg").ajaxStart(function() {
+            $(this).text("Talking...");
+          });
+
+        $("#login :button").click(function() {
+          var client = com.rackspace.cloud.servers.api.client;
+          try {
+            service = new client.CloudServersService({
+              username: $("#login .user").val(),
+              apiKey: $("#login .key").val()
+            });
+            $("div").show();
+            $("#msg").text("Authenticated.  Next, do stuff with the controls on the right.  If you fetch a specific entity, more controls will show up.");
+            repaint();
+
+            servers = service.createServerManager();
+            images = service.createImageManager();
+            flavors = service.createFlavorManager();
+            sharedIpGroups = service.createSharedIpGroupManager();
+          } catch (ex) {
+            $("#msg").text(ex.message).add($("#msg").parents()).show();
+          }
+        });
+
         $("#fetch :button").click(function() {
           var id = $("#fetch :text").val();
           servers.find({
@@ -169,6 +192,9 @@
         });
 
         $("#list :button").click(function() {
+          singleEntity = undefined;
+          repaint();
+
           var lm = $("#list .serverLastModified").val();
           if (lm.length == 0) lm = undefined;
           var offset = $("#list .serverOffset").val();
@@ -189,7 +215,9 @@
           {
             list.forEachAsync({
               each: handler,
-              complete: function() { $("#response").append("DONE"); },
+              complete: function() { 
+                $("#msg").text("Done.");
+              },
               fault: displayFault
             });
           }
@@ -198,7 +226,7 @@
               while (list.hasNext()) {
                 handler(list.next());
               }
-              $("#response").append("DONE");
+              $("#msg").text("Done.");
             }
             catch (fault) {
               displayFault(fault);
@@ -303,7 +331,7 @@
             entity:singleEntity,
             success:function(schedule) {
               $("#msg").html("Fetched backup schedule.");
-              $("#response").html(toHtml(schedule)).append("DONE");
+              $("#response").html(toHtml(schedule));
             },
             fault: displayFault
           });
@@ -331,13 +359,34 @@
     </script>
   </head>
   <body>
-    <div id="ajaxes"></div>
+    <div id="login">
+      Username: <input class="user"/> API Key: <input class="key"/>
+      <input type="button" value="Log In"/>
+      <span></span>
+    </div>
     <div class="leftside">
       <div id="msg"></div>
-      <div>Response:</div>
       <div id="response" style="font-size:x-small"></div>
     </div>
     <div id="controls">
+      <div id="list" class="control box">
+        List servers<br/>
+        Since Last-Modified date of: (blank is OK) 
+        <input class="serverLastModified"/><br/>
+        Offset of: (blank is OK) <input class="serverOffset"/><br/>
+        Limit of: (blank is OK) <input class="serverLimit"/><br/>
+        <input type="radio" checked name="r" value="async"> Async<br/>
+        <input type="radio" name="r" value="sync"> Sync<br/>
+        <input type="button" value="Go"/>
+      </div>
+      <div id="create" class="control box">
+        Create new server:<br/>
+        Name: <input class="serverName"/><br/>
+        Image ID : <input class="serverImageId"/><br/>
+        Flavor ID : <input class="serverFlavorId"/><br/>
+        Value for metadata (blank is OK): <input class="serverMetadataKey"/><br/>
+        <input type="button" value="Go"/>
+      </div>
       <div id="fetch" class="control box">
         Fetch ID: <input value="186177"/> <input type="button" value="Go"/>
       </div>
@@ -356,24 +405,6 @@
       </div>
       <div id="remove" class="control box">
         Remove ID <span class="entityId"></span>: <input type="button" value="Go"/>
-      </div>
-      <div id="create" class="control box">
-        Create new server:<br/>
-        Name: <input class="serverName"/><br/>
-        Image ID : <input class="serverImageId"/><br/>
-        Flavor ID : <input class="serverFlavorId"/><br/>
-        Value for metadata (blank is OK): <input class="serverMetadataKey"/><br/>
-        <input type="button" value="Go"/>
-      </div>
-      <div id="list" class="control box">
-        List servers<br/>
-        Since Last-Modified date of: (blank is OK) 
-        <input class="serverLastModified"/><br/>
-        Offset of: (blank is OK) <input class="serverOffset"/><br/>
-        Limit of: (blank is OK) <input class="serverLimit"/><br/>
-        <input type="radio" checked name="r" value="async"> Async<br/>
-        <input type="radio" name="r" value="sync"> Sync<br/>
-        <input type="button" value="Go"/>
       </div>
       <div id="reboot" class="control box">
         Reboot ID <span class="entityId"></span>:
