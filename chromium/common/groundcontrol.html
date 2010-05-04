@@ -266,6 +266,35 @@
           });
         });
 
+        $("#shareip :button").click(function() {
+          var configureServer = $("#shareip :checkbox:checked").length > 0;
+          servers.shareIp({
+            entity:singleEntity,
+            ip: $("#shareip .serverip").val(),
+            sharedIpGroupId: parseInt($("#shareip .servergroupid").val()),
+            configureServer: ($("#shareip :checkbox:checked").length > 0),
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Shared (+ rebooted if configureServer checked)");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
+        $("#unshareip :button").click(function() {
+          servers.unshareIp({
+            entity:singleEntity,
+            ip: $("#unshareip :text").val(),
+            success:function(theEntity) {
+              singleEntity = theEntity;
+              $("#msg").html("Unshared.");
+              repaint();
+            },
+            fault: displayFault
+          });
+        });
+
         $("#getbackupschedule :button").click(function() {
           servers.getSchedule({
             entity:singleEntity,
@@ -364,6 +393,18 @@
       </div>
       <div id="revertresize" class="control box">
         Revert resize for ID <span class="entityId"></span>:
+        <input type="button" value="Go"/>
+      </div>
+      <div id="shareip" class="control box">
+        Share IP for ID <span class="entityId"></span>:
+        IP = <input class="serverip" /><br/>
+        Shared IP group ID = <input class="servergroupid" /><br/>
+        <input type="checkbox" /> Configure server<br/>
+        <input type="button" value="Go"/>
+      </div>
+      <div id="unshareip" class="control box">
+        Unshare IP for ID <span class="entityId"></span>:
+        IP = <input />
         <input type="button" value="Go"/>
       </div>
       <div id="getbackupschedule" class="control box">
