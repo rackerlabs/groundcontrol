@@ -34,6 +34,7 @@ __csapi_client.EntityManager = function(service, apiRoot) {
 /**
  * Given a completed XMLHttpRequest whose responseText contains fault 
  * information, return a fault:object containing:
+ *   type:string
  *   code:integer
  *   message:string
  *   details?:string
@@ -65,6 +66,20 @@ __csapi_client.EntityManager._parseFault = function(xhr) {
 
 __csapi_client.EntityManager.prototype = {
   __proto__: undefined,
+
+  /**
+   * Subclasses can override CRUD methods to point to this as necessary.
+   */
+  _unsupportedMethod: function(opts) {
+    if (opts.fault) {
+      // TODO: What code should a BadMethodFault have?
+      opts.fault({
+        type: "badMethod",
+        code: 400,
+        message: "This operation is not supported by this Entity type.",
+      });
+    }
+  },
 
   /**
    * $.ajax() wrapper that handles reauthentication, rate limiting, and other 

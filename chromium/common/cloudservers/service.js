@@ -83,14 +83,14 @@ __csapi_client.CloudServersService.prototype = {
   },
 
   createImageManager: function() {
-    // TODO
+    return new __csapi_client.ImageManager(this);
   },
 
   createSharedIpGroupManager: function() {
-    // TODO
+    return new __csapi_client.SharedIpGroupManager(this);
   },
 
   createFlavorManager: function() {
-    // TODO
+    return new __csapi_client.FlavorManager(this);
   },
 }
