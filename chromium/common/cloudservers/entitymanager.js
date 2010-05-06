@@ -141,7 +141,7 @@ __csapi_client.EntityManager.prototype = {
     if (opts.type in {GET:1, POST:1}) opts.dataType = "json";
 
     var that = this;
-    console.log("AJAX " + opts.type + " " + opts.path);
+    log("AJAX " + opts.type + " " + opts.path);
     $.ajax({
       async: opts.async,
       type: opts.type,
@@ -174,7 +174,7 @@ __csapi_client.EntityManager.prototype = {
         }
         // Rate limited --> wait, then try again - several times
         if (xhr.status == 413) {
-          console.log("413; retrying in a bit.");
+          log("413; retrying in a bit.");
           var faultData = __csapi_client.EntityManager._parseFault(xhr);
           if (_retryData.rateLimitedTimes > 5) { // give up
             opts.fault(faultData);
@@ -187,10 +187,10 @@ __csapi_client.EntityManager.prototype = {
             } else {
               // We're synchronous: no choice but to spin until the timeout
               // has passed.  Yuck, yuck, yuck.
-              console.log("\"Sleep\"ing...");
+              log("\"Sleep\"ing...");
               var stopAt = faultData.retryAfter;
               while (new Date() < stopAt) for (var i = 0; i < 100000; i++) {}
-              console.log("Awake!");
+              log("Awake!");
               that._request(opts, _retryData);
             }
           }
@@ -408,16 +408,16 @@ __csapi_client.EntityManager.prototype = {
     var that = this;
     var handleNotification = function(notifyEvent) {
       if (notifyEvent.error) {
-        console.log("wait got an error");
+        log("wait got an error");
         that.stopNotify(opts.entity, handleNotification);
         opts.fault(notifyEvent.fault);
       }
       else if (that._doneWaiting(opts.entity, notifyEvent.targetEntity)) {
-        console.log("wait is done waiting");
+        log("wait is done waiting");
         that.stopNotify(opts.entity, handleNotification);
         opts.success(notifyEvent.targetEntity);
       } else {
-        console.log("wait got notified and will keep waiting");
+        log("wait got notified and will keep waiting");
       }
     };
 

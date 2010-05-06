@@ -214,7 +214,7 @@ __csapi_client.EntityList.prototype = {
     requestPath += "?" + path_opts.join("&");
 
     var that = this;
-    console.log("storenextpage requesting " + requestPath);
+    log("storenextpage requesting " + requestPath);
     that._entityManager._request({
       async: opts.async,
       path: requestPath,

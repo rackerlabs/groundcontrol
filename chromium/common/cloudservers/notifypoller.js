@@ -65,7 +65,7 @@ __csapi_client.NotifyPoller.prototype = {
    * callback:function as passed to EntityManager.notify().
    */
   register: function(entity, callback) {
-    console.log("Registering entity " + entity.id);
+    log("Registering entity " + entity.id);
 
     var data = this._data(entity);
     data.callbacks.push({ fn: callback, latestKnownEntity: entity });
@@ -76,7 +76,7 @@ __csapi_client.NotifyPoller.prototype = {
   // given entity (whose id matches that of the entity earlier passed to
   // register()).
   deregister: function(entity, callback) {
-    console.log("Denotifying for entity " + entity.id);
+    log("Denotifying for entity " + entity.id);
 
     var data = this._data(entity);
     data.callbacks = data.callbacks.filter(function(entry) {
@@ -100,7 +100,7 @@ __csapi_client.NotifyPoller.prototype = {
       delete data.pollTimerId;
     }
 
-    console.log("Polling for entity " + data.latestKnownEntity.id);
+    log("Polling for entity " + data.latestKnownEntity.id);
 
     data.currentlyWaitingForResponse = true;
 
@@ -121,14 +121,14 @@ __csapi_client.NotifyPoller.prototype = {
         var callbacksCopy = data.callbacks.slice();
         for (var i = 0; i < callbacksCopy.length; i++) {
           if (is_stale(callbacksCopy[i].latestKnownEntity)) {
-            console.log("Notifying callback " + i + " for id " + newEntity.id);
+            log("Notifying callback " + i + " for id " + newEntity.id);
             callbacksCopy[i].latestKnownEntity = newEntity;
             callbacksCopy[i].fn({error:false, targetEntity:newEntity});
           }
           else {
             var cM = callbacksCopy[i].latestKnownEntity._lastModified;
             var lM = data.latestKnownEntity._lastModified;
-            console.log("callback " + i + " for entity " + newEntity.id + 
+            log("callback " + i + " for entity " + newEntity.id + 
                         " not notified, because " + cM + " >= " + lM);
           }
         }

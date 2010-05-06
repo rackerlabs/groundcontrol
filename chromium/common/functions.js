@@ -32,3 +32,8 @@ function _set(key, value) {
 function _delete(key) {
   localStorage.removeItem(key);
 }
+
+var log = function() {};
+if (typeof console != undefined && console.log) {
+  log = function(msg) { console.log(msg); }
+}
