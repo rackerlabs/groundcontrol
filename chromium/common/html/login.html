@@ -1,0 +1,89 @@
+<script>
+  // Fill in any data we know about the user, and perhaps click the login
+  // button for them.
+  function autofillLogin() {
+    var credentials = _get("loginCredentials");
+    if (!credentials) {
+      return;
+    }
+    $('#credentials [name="username"]').val(credentials.username);
+    $('#credentials [name="apiKey"]').val(credentials.apiKey);
+    var cb = $("#credentials :checkbox");
+    cb.attr("checked", credentials.rememberMe ? "checked" : null);
+
+    if (credentials.autologin)
+      login(credentials);
+  }
+
+  // Tries to log in with the given username and API key.  If it fails,
+  // writes an explanatory message to #msg.  If it succeeds, stores
+  // the credentials in local storage (if rememberMe), and triggers a
+  // loggedIn event on "html".
+  function login(credentials) {
+    $("#loginpage #login").hide();
+    $("#loginpage #logging_in").show();
+    window.setTimeout(function() {
+      var client = com.rackspace.cloud.servers.api.client;
+      try {
+        var service = new client.CloudServersService({
+          username: credentials.username,
+          apiKey: credentials.apiKey
+        });
+      }
+      catch (fault) {
+        $("#loginpage #msg").show().text(fault.message);
+        return;
+      }
+      finally {
+        $("#loginpage #logging_in").hide();
+        $("#loginpage #login").show();
+      }
+
+      if (credentials.rememberMe) {
+        credentials.autologin = true;
+        _set("loginCredentials", credentials);
+      }
+      else {
+        _delete("loginCredentials");
+      }
+      $("html").trigger("loggedIn", [service]);
+    }, 0); // setTimeout makes us async so #logging_in can show() first
+  }
+
+  $(function() {
+    $("#loginpage").find("#msg,#logging_in").hide();
+
+    // TODO use jQuery validate plugin
+    $("#loginpage #credentials :button").click(function() {
+      var username = $('#loginpage #credentials [name="username"]').val();
+      if (!username) {
+        $("#loginpage #msg").show().text("Enter your username.");
+        return;
+      }
+      var apiKey = $('#loginpage #credentials [name="apiKey"]').val();
+      if (!apiKey) {
+        $("#loginpage #msg").show().text("Enter your API key.");
+        return;
+      }
+      var rememberMe = $("#loginpage :checkbox:checked").length > 0;
+      login({username:username, apiKey:apiKey, rememberMe:rememberMe});
+    });
+
+    autofillLogin();
+  });
+</script>
+<div id="loginpage" class="box">
+  <div id="login">
+    <div>Log in to Cloud Servers to start using GroundControl.</div>
+    <div id="credentials" class="box">
+      Username: <input name="username"/><br/>
+      API Key: <input name="apiKey"/><br/>
+      <div id="msg" class="error"></div>
+      <input type="checkbox"> Remember me<br/>
+      <input type="button" value="Log in"/>
+    </div>
+  </div>
+  <div id="logging_in">
+    Logging in...
+  </div>
+</div>

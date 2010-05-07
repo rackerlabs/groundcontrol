@@ -19,18 +19,51 @@
 * under the License.
 */
 
+// Figure out how to persist data.
+try {
+  localStorage;
+  LOCALSTORAGE = undefined;
+}
+catch (ex) {
+  LOCALSTORAGE = Components.classes["@mozilla.org/preferences-service;1"]
+                        .getService(Components.interfaces.nsIPrefBranch);
+}
+
 function _get(key) {
-  var result = localStorage.getItem(key);
+  if (LOCALSTORAGE) {
+    try {
+      var result = LOCALSTORAGE.getCharPref(key);
+    }
+    catch (ex) {
+      var result = null;
+    }
+  }
+  else {
+    var result = localStorage.getItem(key);
+  }
+
   if (result != null)
     return JSON.parse(result);
   else
     return result;
 }
 function _set(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  if (LOCALSTORAGE)
+    LOCALSTORAGE.setCharPref(key, JSON.stringify(value));
+  else
+    localStorage.setItem(key, JSON.stringify(value));
 }
 function _delete(key) {
-  localStorage.removeItem(key);
+  if (LOCALSTORAGE) {
+    try {
+      LOCALSTORAGE.clearUserPref(key);
+    }
+    catch (ex) {
+    }
+  }
+  else {
+    localStorage.removeItem(key);
+  }
 }
 
 var log = function(msg) {

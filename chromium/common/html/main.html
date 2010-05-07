@@ -1,0 +1,72 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>GroundControl</title>
+    <style>
+      body > #whoami {
+        display: none;
+        float:right;
+      }
+      .box {
+        border: 1px solid gray;
+        margin:5px;
+        padding:5px;
+        background: white;
+      }
+      .info {
+        margin: 5px;
+        padding: 5px;
+        -webkit-border-radius:8px;
+        -moz-border-radius:8px;
+        background: #ffa;
+        border: 1px solid #aa8;
+      }
+      .error {
+        color: red;
+      }
+    </style>
+    <script src="../jquery/jquery-1.4.2.min.js"></script>
+    <script src="../functions.js"></script>
+    <script src="../cloudservers/service.js"></script>
+    <script src="../cloudservers/faults.js"></script>
+    <script src="../cloudservers/entitymanager.js"></script>
+    <script src="../cloudservers/servermanager.js"></script>
+    <script src="../cloudservers/imagemanager.js"></script>
+    <script src="../cloudservers/sharedipgroupmanager.js"></script>
+    <script src="../cloudservers/flavormanager.js"></script>
+    <script src="../cloudservers/notifypoller.js"></script>
+    <script src="../cloudservers/entitylist.js"></script>
+    <script src="../cloudservers/backupschedule.js"></script>
+    <script>
+      $(function() {
+        $("html").bind("loggedIn", function(event, svc) {
+          service = svc; // make it global
+          $("body > #whoami").show().find("#name").text(service._username);
+          $("#container").load("servers.html");
+        });
+
+        $("body > #whoami #logout").click(function() {
+          delete service;
+          var credentials = _get("loginCredentials");
+          if (credentials) {
+            credentials.autologin = false;
+            _set("loginCredentials", credentials);
+          }
+          document.location.reload();
+        });
+
+        $("#container").load("login.html");
+      });
+    </script>
+  </head>
+  <body>
+    <div id="whoami" class="box">
+      Hello, <span id="name"></span> <a href="#" id="logout">log out</a>
+    </div>
+    <h1>GroundControl</h1>
+    <div id="container">
+    </div>
+  </body>
+</html>

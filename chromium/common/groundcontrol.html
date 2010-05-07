@@ -19,16 +19,7 @@
  under the License.
 -->
 
-<html>
-  <head>
-    <title>GroundControl</title>
     <style>
-      .box {
-        border: 1px solid gray;
-        margin:5px;
-        padding:5px;
-        background: white;
-      }
       .leftside {
         float:left;
         width:400px;
@@ -43,27 +34,7 @@
         -webkit-border-radius: 5px;
         -moz-border-radius: 5px;
       }
-      #msg {
-        margin: 10px;
-        padding: 10px;
-        -webkit-border-radius:10px;
-        -moz-border-radius:10px;
-        background: #ff7;
-        border: 2px solid #886;
-      }
     </style>
-    <script src="jquery/jquery-1.4.2.min.js"></script>
-    <script src="functions.js"></script>
-    <script src="cloudservers/service.js"></script>
-    <script src="cloudservers/faults.js"></script>
-    <script src="cloudservers/entitymanager.js"></script>
-    <script src="cloudservers/servermanager.js"></script>
-    <script src="cloudservers/imagemanager.js"></script>
-    <script src="cloudservers/sharedipgroupmanager.js"></script>
-    <script src="cloudservers/flavormanager.js"></script>
-    <script src="cloudservers/notifypoller.js"></script>
-    <script src="cloudservers/entitylist.js"></script>
-    <script src="cloudservers/backupschedule.js"></script>
     <script>
       function displayFault(fault) {
         $("#msg").html("FAULT: " + JSON.stringify(fault));
@@ -100,36 +71,15 @@
 
       $(function() {
 
-        $("div").hide();
-        $("div#login").show();
+        $("#stubui #controls div").not("#list,#fetch,#create").hide();
 
         $("#msg").ajaxStart(function() {
-            $(this).text("Talking...");
-          });
-
-        $("#login :button").click(function() {
-          var client = com.rackspace.cloud.servers.api.client;
-          try {
-            service = new client.CloudServersService({
-              username: $("#login .user").val(),
-              apiKey: $("#login .key").val()
-            });
-            $("div").show();
-            $("#msg").text("Authenticated.  Next, do stuff with the controls on the right.  If you fetch a specific entity, more controls will show up.");
-            repaint();
-
-            servers = service.createServerManager();
-            images = service.createImageManager();
-            flavors = service.createFlavorManager();
-            sharedIpGroups = service.createSharedIpGroupManager();
-          } catch (ex) {
-            $("#msg").text(ex.message).add($("#msg").parents()).show();
-          }
+          $(this).text("Talking...");
         });
 
         $("#fetch :button").click(function() {
           var id = $("#fetch :text").val();
-          servers.find({
+          service.servers.find({
             id:id, 
             success:function(entity) {
               $("#msg").html("Fetched.");
@@ -141,7 +91,7 @@
         });
 
         $("#refresh :button").click(function() {
-          servers.refresh({
+          service.servers.refresh({
             entity:singleEntity,
             success:function(entity) {
               singleEntity = entity;
@@ -153,7 +103,7 @@
         });
 
         $("#remove :button").click(function() {
-          servers.remove({
+          service.servers.remove({
             entity:singleEntity,
             success:function() {
               singleEntity = undefined;
@@ -170,7 +120,7 @@
           if ($("#update .serverPass").val().length != 0)
             singleEntity.adminPass = $("#update .serverPass").val();
 
-          servers.update({
+          service.servers.update({
             entity:singleEntity,
             success:function(entity) {
               singleEntity = entity;
@@ -182,7 +132,7 @@
         });
 
         $("#wait :button").click(function() {
-          servers.wait({
+          service.servers.wait({
             entity:singleEntity,
             success:function(entity) {
               singleEntity = entity;
@@ -201,7 +151,7 @@
             metadata: { testMetadata: $("#create .serverMetadataKey").val() }
           };
 
-          servers.create({
+          service.servers.create({
             entity:newEntity,
             success:function(entity) {
               singleEntity = entity;
@@ -224,9 +174,9 @@
           if (limit.length == 0) limit = undefined;
 
           if (lm)
-            var list = servers.createDeltaList(true, lm, offset, limit);
+            var list = service.servers.createDeltaList(true, lm, offset, limit);
           else
-            var list = servers.createList(true, offset, limit);
+            var list = service.servers.createList(true, offset, limit);
 
           function handler(s) {
             $("#response").append(toHtml(s));
@@ -256,7 +206,7 @@
         });
 
         $("#reboot :button").click(function() {
-          servers.reboot({
+          service.servers.reboot({
             entity:singleEntity,
             hard: $(this).val() == "Hard",
             success:function(theEntity) {
@@ -269,7 +219,7 @@
         });
 
         $("#rebuild :button").click(function() {
-          servers.rebuild({
+          service.servers.rebuild({
             entity:singleEntity,
             imageId: parseInt($("#rebuild :text").val()),
             success:function(theEntity) {
@@ -282,7 +232,7 @@
         });
 
         $("#resize :button").click(function() {
-          servers.resize({
+          service.servers.resize({
             entity:singleEntity,
             flavorId: parseInt($("#resize :text").val()),
             success:function(theEntity) {
@@ -295,7 +245,7 @@
         });
 
         $("#confirmresize :button").click(function() {
-          servers.confirmResize({
+          service.servers.confirmResize({
             entity:singleEntity,
             success:function(theEntity) {
               singleEntity = theEntity;
@@ -307,7 +257,7 @@
         });
 
         $("#revertresize :button").click(function() {
-          servers.revertResize({
+          service.servers.revertResize({
             entity:singleEntity,
             success:function(theEntity) {
               singleEntity = theEntity;
@@ -320,7 +270,7 @@
 
         $("#shareip :button").click(function() {
           var configureServer = $("#shareip :checkbox:checked").length > 0;
-          servers.shareIp({
+          service.servers.shareIp({
             entity:singleEntity,
             ip: $("#shareip .serverip").val(),
             sharedIpGroupId: parseInt($("#shareip .servergroupid").val()),
@@ -335,7 +285,7 @@
         });
 
         $("#unshareip :button").click(function() {
-          servers.unshareIp({
+          service.servers.unshareIp({
             entity:singleEntity,
             ip: $("#unshareip :text").val(),
             success:function(theEntity) {
@@ -348,7 +298,7 @@
         });
 
         $("#getbackupschedule :button").click(function() {
-          servers.getSchedule({
+          service.servers.getSchedule({
             entity:singleEntity,
             success:function(schedule) {
               $("#msg").html("Fetched backup schedule.");
@@ -362,7 +312,7 @@
           var weekly = $("#setbackupschedule .scheduleWeekly").val();
           var daily = $("#setbackupschedule .scheduleDaily").val();
           var enabled = $("#setbackupschedule .scheduleEnabled").val();
-          servers.setSchedule({
+          service.servers.setSchedule({
             entity:singleEntity,
             weekly: weekly.length > 0 ? parseInt(weekly) : undefined,
             daily: daily.length > 0 ? parseInt(daily) : undefined,
@@ -379,14 +329,12 @@
       });
     </script>
   </head>
-  <body>
-    <div id="login">
-      Username: <input class="user"/> API Key: <input class="key"/>
-      <input type="button" value="Log In"/>
-      <span></span>
-    </div>
+  <div id="stubui">
     <div class="leftside">
-      <div id="msg"></div>
+      <div id="msg" class="info">
+        Click a button on the right.  Fetch's button will cause many other
+        options to appear.
+      </div>
       <div id="response" style="font-size:x-small"></div>
     </div>
     <div id="controls">
@@ -474,6 +422,4 @@
         <input type="button" value="Go"/>
       </div>
     </div>
-  </body>
-</html>
-
+  </div>

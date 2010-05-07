@@ -35,7 +35,7 @@
             }
           }
           // No match; the UI was closed, or hasn't been opened yet.
-          var url = chrome.extension.getURL("common/groundcontrol.html");
+          var url = chrome.extension.getURL("common/html/main.html");
           chrome.tabs.create({url:url}, function(tab) {
             groundcontrolTabId = tab.id;
           });

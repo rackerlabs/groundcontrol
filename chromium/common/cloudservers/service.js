@@ -48,6 +48,12 @@ __csapi_client.CloudServersService = function(opts) {
   this._apiKey = opts.apiKey;
   var out_fault = {};
   this._blockingAuthenticate();
+
+  // Convenience attributes
+  this.servers = this.createServerManager();
+  this.images = this.createImageManager();
+  this.flavors = this.createFlavorManager();
+  this.sharedIpGroups = this.createSharedIpGroupManager();
 }
 __csapi_client.CloudServersService.prototype = {
 
