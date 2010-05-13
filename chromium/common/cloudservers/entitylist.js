@@ -104,12 +104,14 @@ __csapi_client.EntityList.prototype = {
    * with the server.
    *
    * opts:object contains:
-   *   each:function(entity) called for each entity in the list.
+   *   each:function(entity) called for each entity in the list.  Calls to
+   *       each() will be in list order.
    *     entity:Entity the entity from the list.
    *
-   *   complete?:function() called once all entities have had each() called
+   *   complete?:function(count) called once all entities have had each() called
    *       upon them, if there was no fault.  This is called even if there
    *       no entities in the list.
+   *     count:integer the number of times each() was called.
    *
    *   fault?:function(fault)
    *     fault:CloudServersFault the fault that occurred
@@ -118,20 +120,20 @@ __csapi_client.EntityList.prototype = {
     opts.complete = opts.complete || function() {};
 
     var that = this;
-    var visitOneItem = function() {
+    var visitOneItem = function(count) {
       that._nextAsync({
         success: function(entity) {
           if (entity) {
             opts.each(entity);
-            visitOneItem(); // keep visiting as long as it keeps working
+            visitOneItem(count + 1); // visit the next item
           } else {
-            opts.complete();
+            opts.complete(count);
           }
         },
         fault: opts.fault
       });
     };
-    visitOneItem(); // start the process
+    visitOneItem(0); // start the process
   },
 
   /**
@@ -180,21 +182,10 @@ __csapi_client.EntityList.prototype = {
    */
   _storeNextPage: function(opts) {
     opts.success = opts.success || function() {};
-    var numRemaining;
 
-    // If we specified a limit and we've read that many, we're done.
-    var done = false;
-    if (this._options.limit != undefined) {
-      var numConsumed = this._trueIndex - this._options.offset;
-      numRemaining = this._options.limit - numConsumed;
-      if (numRemaining <= 0)
-        done = true;
-    }
-    // If we gave no limit but the last fetched page wasn't huge, we're done.
-    else if (this._currentPage && this._currentPage.length < 200)
-      done = true;
-
-    if (done) {
+    // If the last fetch wasn't so big that the server may have a larger
+    // result set that it truncated, we're done.
+    if (this._currentPage && this._currentPage.length < 200) {
       this._currentPage = [];
       this._nextPageIndex = 0;
       opts.success();
@@ -202,16 +193,19 @@ __csapi_client.EntityList.prototype = {
     }
 
     // Fetch a page starting from this._trueIndex, our current offset.
-    var requestPath = (this._options.detailed ? "detail" : "");
     var path_opts = [];
     path_opts.push("offset=" + this._trueIndex);
-    if (this._options.limit)
+    if (this._options.limit) {
+      var numConsumed = this._trueIndex - this._options.offset;
+      var numRemaining = this._options.limit - numConsumed;
       path_opts.push("limit=" + numRemaining);
+    }
     if (this._options.changes_since) {
       path_opts.push("changes-since=" + 
                      new Date(this._options.changes_since).getTime() / 1000);
     }
-    requestPath += "?" + path_opts.join("&");
+    var requestPath = (this._options.detailed ? "detail?" : "?") +
+                      path_opts.join("&");
 
     var that = this;
     log("storenextpage requesting " + requestPath);
