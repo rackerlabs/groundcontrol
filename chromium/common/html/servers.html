@@ -1,13 +1,103 @@
 <style>
+  /* TODO: make this page purty */
 </style>
-<div id="homepage">
-  <div class="info">For now, we're inlining the ugly stub UI.</div>
+
+<div id="servers">
+  <h2>Servers</h2>
+
+  <div id="list" class="box">
+    <table id="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>RAM size</th>
+          <th>Public IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr id="more"><td colspan="3"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Holds an item to be cloned and added to the list once per entity -->
+  <div id="listitem" style="display:none">
+    <table> <!-- needed to store the <tr> which we actually care about -->
+      <tr>
+        <td class="name"></td>
+        <td class="ram"></td>
+        <td class="ip"></td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="detail" style="display:none" class="box">
+    <h3><span class="name"></span></h3>
+    ID: <span class="id"></span><br/>
+    IP: <span class="ip"></span><br/>
+  </div>
 
   <div id="stubui">
   </div>
+
   <script>
+    // Put the details of the given server into the detail view.
+    function fillDetails(server) {
+      $("#servers #detail").
+        find(".name").html(server.name).end().
+        find(".id").html(server.id).end().
+        find(".ip").html(server.addresses.public[0]).end().
+        show().
+        data("server", server);
+    }
+
+    // Add a row to the list view for the given server.
+    function addRow(server) {
+      var row = $("#servers #listitem tr").
+        clone().
+        find(".name").html(server.name).end().
+        find(".ram").html("unknown").end().
+        find(".ip").html(server.addresses.public[0]).end().
+        data("server", server).
+        click(function() { 
+          fillDetails(server);
+        });
+      $("#servers #table #more").before(row);
+    }
+
+    // Load a page of servers into the list.
+    function loadListPage(pageNumber) {
+      $("#servers #more td").show().html("Loading...");
+
+      var PAGE_SIZE = 10;
+      var offset = pageNumber * PAGE_SIZE;
+
+      service.servers.createList(true, offset, PAGE_SIZE).forEachAsync({
+        each: function(server) {
+          addRow(server);
+        },
+        complete: function(count) {
+          var more = $("#servers #more");
+          if (count == PAGE_SIZE) { // didn't reach end of list
+            var link = $("<a>", {href:"#"}).
+              text("More...").
+              click(function() {
+                loadListPage(pageNumber + 1);
+              });
+            more.find("td").html(link);
+          }
+          else {
+            more.hide();
+          }
+        }
+      });
+    }
+
     $(function() {
-      $("#stubui").load("../groundcontrol.html");
+      // $("#stubui").load("../groundcontrol.html");
+
+      loadListPage(0);
+
     });
   </script>
 </div>

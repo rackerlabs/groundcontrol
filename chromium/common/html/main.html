@@ -5,6 +5,11 @@
   <head>
     <title>GroundControl</title>
     <style>
+      #maintitle {
+        background: url(../icons/sun-and-clouds-48.png) no-repeat center left;
+        height:48px;
+        padding-left:54px;
+      }
       body > #whoami {
         display: none;
         float:right;
@@ -63,9 +68,9 @@
   </head>
   <body>
     <div id="whoami" class="box">
-      Hello, <span id="name"></span> <a href="#" id="logout">log out</a>
+      Hello, <span id="name"></span>! <a href="#" id="logout">log out</a>
     </div>
-    <h1>GroundControl</h1>
+    <h1 id="maintitle">GroundControl</h1>
     <div id="container">
     </div>
   </body>
