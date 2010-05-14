@@ -267,13 +267,14 @@ __csapi_client.EntityManager.prototype = {
         // response body and Content-Type text/xml, which are incompatible.
         // Until they remove the Content-Type header, jQuery will try to parse
         // the empty body and will throw a parsererror.  So a fault with status
-        // 202 is actually success.  Remove this check once the API stops
-        // sending the Content-Type header.
+        // 202 is actually success.  Once the API stops sending the
+        // Content-Type header, collapse all this into "fault: opts.fault".
         if (fault.code == 202) {
           opts.success();
           return;
         }
-        opts.fault(fault);
+        if (opts.fault)
+          opts.fault(fault);
       }
     });
   },

@@ -4,6 +4,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>GroundControl</title>
+    <link rel="stylesheet" href="../jquery/css/blitzer/jquery-ui-1.8.1.custom.css"/>
     <style>
       #maintitle {
         background: url(../icons/sun-and-clouds-48.png) no-repeat center left;
@@ -33,6 +34,7 @@
       }
     </style>
     <script src="../jquery/jquery-1.4.2.min.js"></script>
+    <script src="../jquery/jquery-ui-1.8.1.custom.min.js"></script>
     <script src="../functions.js"></script>
     <script src="../cloudservers/service.js"></script>
     <script src="../cloudservers/faults.js"></script>
@@ -64,6 +66,10 @@
 
         $("#container").load("login.html");
       });
+
+      function flash(msg) {
+        $("#flash").text(msg).show().delay(3000).fadeOut();
+      }
     </script>
   </head>
   <body>
@@ -71,7 +77,7 @@
       Hello, <span id="name"></span>! <a href="#" id="logout">log out</a>
     </div>
     <h1 id="maintitle">GroundControl</h1>
-    <div id="container">
-    </div>
+    <div id="flash" class="info" style="display:none"></div>
+    <div id="container"></div>
   </body>
 </html>
