@@ -32,6 +32,13 @@
       .error {
         color: red;
       }
+      .joinus {
+        font-style: italic;
+        position: absolute;
+        bottom: 20px;
+        text-align: center;
+        width:100%;
+      }
     </style>
     <script src="../jquery/jquery-1.4.2.min.js"></script>
     <script src="../jquery/jquery-ui-1.8.1.custom.min.js"></script>
@@ -46,6 +53,7 @@
     <script src="../cloudservers/notifypoller.js"></script>
     <script src="../cloudservers/entitylist.js"></script>
     <script src="../cloudservers/backupschedule.js"></script>
+    <script src="paginatedtable.js"></script>
     <script>
       $(function() {
         $("html").bind("loggedIn", function(event, svc) {
@@ -70,6 +78,9 @@
       function flash(msg) {
         $("#flash").text(msg).show().delay(3000).fadeOut();
       }
+      function flashFault(fault) {
+        flash("Oops! " + fault.message);
+      }
     </script>
   </head>
   <body>
@@ -79,5 +90,11 @@
     <h1 id="maintitle">GroundControl</h1>
     <div id="flash" class="info" style="display:none"></div>
     <div id="container"></div>
+
+    <div class="joinus">
+      GroundControl is in alpha and is open source.  Come contribute to the
+      project at <a href="http://github.com/rackspace/groundcontrol"
+        >github.com/rackspace/groundcontrol</a>!
+    </div>
   </body>
 </html>

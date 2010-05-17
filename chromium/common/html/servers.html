@@ -17,6 +17,18 @@
       <tbody>
       </tbody>
     </table>
+    <input type="button" class="new" value="Create New"/>
+    <div class="newform" style="display:none">
+      <h3>Create New Server</h3>
+      Name: <input class="name"/><br/>
+      Image: <input class="imageid"/><br/> <!-- TODO image dropdown -->
+      Flavor: <input class="flavorid"/><br/> <!-- TODO flavor dropdown -->
+      <!-- TODO metadata keys & values? -->
+      <input type="button" class="save" value="Create"/>
+      <input type="button" class="saving" value="Saving..." 
+             disabled style="display:none"/>
+    </div>
+
   </div>
 
   <!-- Holds an item to be cloned and added to the list once per entity -->
@@ -31,114 +43,167 @@
   </div>
 
   <div id="detail" style="display:none" class="box">
-    <h3><span class="name"></span></h3>
+    <div>
+      <span class="namedisplay">
+        <span class="name"></span>
+        <a href="#" class="namechange">change</a>
+      </span>
+      <span class="nameedit" style="display:none">
+        <input />
+        <input type="button" class="save" value="Save"/>
+        <input type="button" class="saving" value="Saving..." 
+               disabled style="display:none" />
+      </span>
+    </div>
     ID: <span class="id"></span><br/>
     IP: <span class="ip"></span><br/>
+    Image ID: <span class="imageid"></span><br/>
+    Flavor ID: <span class="flavorid"></span><br/>
 
     <div><a href="#" class="delete">Delete</a></div>
   </div>
 
-  <div id="stubui">
-  </div>
-
   <script>
-    function PaginatedTable(opts) {
-      var that = this;
+    $(function() {
 
-      that._manager = opts.manager;
-      that._table = opts.table;
-      that._createRow = opts.createRow;
-      that._currentPage = 0;
+      var paginatedTable = new PaginatedTable({
+        table: $("#servers #list"),
+        manager: service.servers,
+        createRow: createRow,
+        rowClick: fillDetails
+      });
 
-      if (opts.rowClick) {
-        that._table.find("tr.dataRow").live("click", function() {
-          var theRow = $(this);
-          opts.rowClick(theRow.data("entity"));
-        });
-      }
 
-      var numCols = that._table.find("thead tr td").length;
-      that._more = $('<tr><td></td></tr>');
-      that._more.find("td").
-        attr("colspan", numCols).
-        append('<a href="#">More...</a>').
-        append('<span class="loading">Loading...</span>');
-      that._more.
-        find(".loading").hide().end().
-        find("a").click(function() { that.loadPage(); }).end();
+      // Hook up event handlers to HTML
 
-      that._table.find("tbody").append(this._more);
-    }
+      $("#servers .new").click(function() {
+        $("#servers .newform").show();
+      });
+      $("#servers .newform .save").click(function() {
+        var newform = $("#servers .newform");
 
-    PaginatedTable.prototype = {
-      // Append a page of entities to the list.
-      loadPage: function() {
-        this._more.
-          find("a").hide().end().
-          find(".loading").show();
+        function filled(classname, msg) {
+          if (newform.find(classname).val())
+            return true;
+          flash(msg);
+          return false;
+        }
 
-        var PAGE_SIZE = 10;
-        var offset = this._currentPage * PAGE_SIZE;
+        if (!filled(".imageid", "Invalid image ID")) return;
+        if (!filled(".flavorid", "Invalid flavor ID")) return;
+        if (!filled(".name", "Specify a name")) return;
+            
+        newform.
+          find(".save").hide().end().
+          find(".saving").show().end();
 
-        var that = this;
-        that._manager.createList(true, offset, PAGE_SIZE).forEachAsync({
-          each: function(entity) {
-            var row = that._createRow(entity);
-            that._more.before(row);
-            row.
-              addClass("dataRow").
-              data("entity", entity);
+        service.servers.create({
+          entity: {
+            name: newform.find(".name").val(),
+            imageId: parseInt(newform.find(".imageid").val()),
+            flavorId: parseInt(newform.find(".flavorid").val())
           },
-          complete: function(count) {
-            that._currentPage += 1;
+          success: function(newServer) {
+            paginatedTable.addRowFor(newServer);
+            newform.
+              hide().
+              find(":text").val("").end().
+              find(".save").show().end().
+              find(".saving").hide().end();
+            flash("Created new server '" + newServer.name + "'.");
+          },
+          fault: flashFault
+        });
 
-            if (count == PAGE_SIZE) { // didn't reach end of list
-              that._more.
-                find(".loading").hide().end().
-                find("a").show();
-            }
-            else {
-              that._more.hide();
-            }
+      });
+
+      var detail = $("#servers #detail");
+      detail.find("a.delete").click(function() {
+        var server = detail.data("server");
+
+        verifyModal({
+          yes: function() {
+            service.servers.remove({
+              entity: server,
+              success: function() {
+                paginatedTable.rowFor(server).remove();
+                detail.hide();
+                flash("Deleted.");
+              },
+              fault: flashFault
+            });
           }
         });
-      },
-
-      // Return a jQuery ojbect containing the row(s) for the given entity
-      rowFor: function(entity) {
-        return this._table.
-          find("tr.dataRow").
-          filter(function() {
-            return $(this).data("entity") == entity;
-          });
-      }
-    }
-
-    function verifyModal(opts) {
-      opts.text = opts.text || "Really?";
-      opts.title = opts.title || "Confirm";
-      var yes = opts.yes || function() {};
-      var no = opts.no || function() {};
-      var answer = function(callback) {
-        return function() {
-          $(this).dialog("close");
-          callback();
-        }
-      }
-      $("<div>").text(opts.text).dialog({
-        title: opts.title,
-        buttons: { "Yes": answer(yes), "No": answer(no) },
       });
-    }
 
-    $(function() {
+      detail.find("a.namechange").click(function() {
+        var server = detail.data("server");
+        detail.find(".namedisplay").hide();
+        detail.find(".nameedit").show().find(":text").val(server.name).select();
+      });
+
+      detail.find(".nameedit .save").click(function() {
+        var newname = detail.find(".nameedit :text").val();
+        if (!newname) {
+          flash("Invalid name.");
+          return;
+        }
+
+        detail.
+          find(".nameedit .save").hide().end().
+          find(".nameedit .saving").show().end();
+
+        var server = detail.data("server");
+
+        var oldname = server.name;
+        server.name = newname;
+        service.servers.update({
+          entity: server,
+          success: function(newServer) {
+            paginatedTable.replaceRowFor(server, newServer);
+            fillDetails(newServer);
+            flash("Saved.");
+          },
+          fault: function(fault) {
+            server.name = oldname;
+            fillDetails(server);
+            flashFault(fault);
+          }
+        });
+      });
+
+      function verifyModal(opts) {
+        opts.text = opts.text || "Really?";
+        opts.title = opts.title || "Confirm";
+        var yes = opts.yes || function() {};
+        var no = opts.no || function() {};
+        var answer = function(callback) {
+          return function() {
+            $(this).dialog("close");
+            callback();
+          }
+        }
+        $("<div>").text(opts.text).dialog({
+          title: opts.title,
+          buttons: { "Yes": answer(yes), "No": answer(no) },
+        });
+      }
+
       function fillDetails(server) {
         $("#servers #detail").
           show().
           data("server", server).
           find(".name").html(server.name).end().
           find(".id").html(server.id).end().
-          find(".ip").html(server.addresses.public[0]).end();
+          find(".ip").html(server.addresses.public[0]).end().
+          find(".imageid").html(server.imageId).end().
+          find(".flavorid").html(server.flavorId).end();
+
+        // Reset visibility of elements that may have been played with
+        // during e.g. a name edit
+        $("#servers #detail").
+          find("*").show().end().
+          find(".nameedit").add(".saving").hide();
       }
 
       function createRow(server) {
@@ -150,38 +215,13 @@
         return row;
       }
 
-      var detail = $("#servers #detail");
 
-      detail.find("a.delete").click(function() {
-        var server = detail.data("server");
-
-        verifyModal({
-          yes: function() {
-            service.servers.remove({
-              entity: server,
-              success: function() {
-                serverList.rowFor(server).remove();
-                detail.hide();
-                flash("Deleted.");
-              },
-              fault: function(fault) {
-                flash("Oops! " + fault.message);
-              }
-            });
-          }
-        });
-      });
-
-      var serverList = new PaginatedTable({
-        table: $("#servers #list"),
-        manager: service.servers,
-        createRow: createRow,
-        rowClick: fillDetails
-      });
-
-      serverList.loadPage();
+      paginatedTable.loadPage();
 
       //$("#stubui").load("../groundcontrol.html");
     });
   </script>
+
+  <div id="stubui">
+  </div>
 </div>
