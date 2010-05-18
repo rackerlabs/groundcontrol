@@ -50,8 +50,8 @@
     <div class="name"></div>
     ID: <span class="id"></span><br/>
     IP: <span class="ip"></span><br/>
-    Image: <span class="image"></span>
-    Flavor: <span class="flavor"></span><br/>
+    <div>Image:&nbsp;<span class="image"></span></div>
+    <div>Flavor:&nbsp;<span class="flavor"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -155,10 +155,8 @@
             entity: server,
             hard: hard,
             success: function(updatedServer) {
-              paginatedTable.replaceRowFor(server, updatedServer);
-              fillDetails(null);
               modal.dialog("close");
-              flash("Rebooted.");
+              updated(server, updatedServer, "Reboot begun.");
             },
             fault: function(fault) {
               modal.dialog("close");
@@ -228,6 +226,12 @@
         });
       }
 
+      function updated(oldServer, newServer, message) {
+        paginatedTable.replaceRowFor(oldServer, newServer);
+        fillDetails(newServer);
+        flash(message);
+      }
+
       function fillDetails(server) {
         if (!server) {
           $("#servers #detail").hide();
@@ -238,12 +242,6 @@
         $details.
           show().
           data("server", server);
-
-        function saved(oldServer, newServer) {
-          paginatedTable.replaceRowFor(oldServer, newServer);
-          fillDetails(newServer);
-          flash("Saved.");
-        }
 
         $details.find(".name").showAndEdit({
           originalValue: server.name,
@@ -261,7 +259,7 @@
               service.servers.update({ 
                 entity: server, 
                 success: function(newEntity) { 
-                  saved(server, newEntity);
+                  updated(server, newEntity, "Saved.");
                   success();
                 },
                 fault: function(fault) { failure(fault.message); }
@@ -299,7 +297,7 @@
               entity: server,
               imageId: value,
               success: function(newEntity) { 
-                saved(server, newEntity);
+                updated(server, newEntity, "Rebuild started.");
                 success();
               },
               fault: function(fault) { failure(fault.message); }
@@ -321,7 +319,7 @@
               entity: server,
               flavorId: value,
               success: function(newEntity) { 
-                saved(server, newEntity);
+                updated(server, newEntity, "Resize started.");
                 success();
               },
               fault: function(fault) { failure(fault.message); }

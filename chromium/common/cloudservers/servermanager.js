@@ -69,9 +69,9 @@ __csapi_client.ServerManager.prototype = {
    *   type?:string The type of the request.  Defaults to "POST".
    *   path?:string The request path to use.  Defaults to entityId + "/action"
    *   data?:object The data to be sent with the request.  Defaults to none.
-   *   success?:function(entity) called after the action has completed
-   *       and the entity has returned to a stable state.
-   *     entity:Entity the updated entity after the action has completed.
+   *   success?:function(entity) called after the action has been requested;
+   *       the entity may not have yet returned to a stable state.
+   *     entity:Entity the entity after the action has been requested.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
    */
@@ -86,8 +86,15 @@ __csapi_client.ServerManager.prototype = {
       path: opts.path,
       data: opts.data,
       success: function() {
-        if (opts.success)
-          that.wait(opts); // inform them upon completion.
+        if (opts.success) {
+          that.refresh({
+            entity: opts.entity,
+            success: function(updatedEntity) {
+              opts.success(updatedEntity);
+            },
+            fault: opts.fault
+          });
+        }
       },
       fault: opts.fault
     });
@@ -99,8 +106,8 @@ __csapi_client.ServerManager.prototype = {
    * opts:object contains:
    *   entity:Entity The server to reboot.
    *   hard?: true if a hard reboot.  Defaults to false (soft reboot).
-   *   success?:function(server) called after reboot is complete.
-   *     server:Entity the rebooted server.
+   *   success?:function(server) called after reboot has been requested.
+   *     server:Entity the rebooted (or rebooting) server.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
    */
@@ -116,8 +123,8 @@ __csapi_client.ServerManager.prototype = {
    * opts:object contains:
    *   entity:Entity The server to rebuild.
    *   imageId:integer The id of the new image to use on the server.
-   *   success?:function(server) called after rebuild is complete.
-   *     server:Entity the rebuilt server.
+   *   success?:function(server) called once the rebuild has begun.
+   *     server:Entity the server in the process of rebuilding.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
    */
@@ -132,10 +139,10 @@ __csapi_client.ServerManager.prototype = {
    * opts:object contains:
    *   entity:Entity The server to resize.
    *   flavorId:integer The id of the new flavor to use on the server.
-   *   success?:function(server) called after resize is complete.  You still
+   *   success?:function(server) called once resize has begun.  You still
    *       at that point have the opportunity to call confirmResize() or
    *       revertResize() for 24 hours.
-   *     server:Entity the resized server.
+   *     server:Entity the server in the process of resizing.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
    */
@@ -150,7 +157,7 @@ __csapi_client.ServerManager.prototype = {
    *
    * opts:object contains:
    *   entity:Entity The server for whom to confirm the resize.
-   *   success?:function(server) called after confirmation is complete.
+   *   success?:function(server) called after confirmation has been sent.
    *     server:Entity the server.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
@@ -166,7 +173,8 @@ __csapi_client.ServerManager.prototype = {
    *
    * opts:object contains:
    *   entity:Entity The server for whom to revert the resize.
-   *   success?:function(server) called after the revert is complete.
+   *   success?:function(server) called after the revert has been requested.
+   *       wait() on server if you want to wait until the revert is complete.
    *     server:Entity the reverted server.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
@@ -195,8 +203,8 @@ __csapi_client.ServerManager.prototype = {
    *   sharedIpGroupId:integer the IP group from which to share the IP.
    *   configureServer?:boolean if true, reboot the server and configure it
    *       with the new address.  Defaults to false.
-   *   success?:function(server) called after the share is complete, and after
-   *       the server has been rebooted if configureServer is true.
+   *   success?:function(server) called after the share has been requested.
+   *       wait() on the server if you want to wait until the share completes.
    *     server:Entity the updated server.
    *   fault?:function(fault) called if there is a problem with the request.
    *     fault:CloudServersFault details about the problem.
