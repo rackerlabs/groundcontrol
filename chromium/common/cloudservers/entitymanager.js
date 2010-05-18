@@ -235,7 +235,7 @@ __csapi_client.EntityManager.prototype = {
         // accurate, and not a supported API.
         newEntity._lastModified = xhr.getResponseHeader("Date");
 
-        opt.success(newEntity);
+        opts.success(newEntity);
       },
       fault: opts.fault
     });
