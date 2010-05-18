@@ -64,7 +64,9 @@ PaginatedTable.prototype = {
   },
 
   addRowFor: function(entity) {
-    this._more.before(this._makeDataRow(entity));
+    var newRow = this._makeDataRow(entity);
+    this._more.before(newRow);
+    newRow.effect("highlight", {}, 3000);
   },
 
   // Return a jQuery ojbect containing the row(s) for the given entity
@@ -78,7 +80,13 @@ PaginatedTable.prototype = {
 
   // Replace the row for oldEntity with one for newEntity.
   replaceRowFor: function(oldEntity, newEntity) {
-    this.rowFor(oldEntity).replaceWith(this._makeDataRow(newEntity));
+    var oldRow = this.rowFor(oldEntity);
+    var newRow = this._makeDataRow(newEntity);
+    newRow.
+      hide().
+      replaceAll(oldRow).
+      fadeIn('fast').
+      effect("highlight", {}, 3000);
   }
 
 }

@@ -6,6 +6,8 @@
   <h2>Servers</h2>
 
   <div id="listdiv">
+    <i>This table could maybe be a sidescrolling list of boxes a la 
+      grooveshark</i>
     <table id="list" class="box">
       <thead>
         <tr>
@@ -45,22 +47,11 @@
   </div>
 
   <div id="detail" style="display:none" class="box">
-    <div>
-      <span class="namedisplay">
-        <span class="name"></span>
-        <a href="#" class="namechange">change</a>
-      </span>
-      <span class="nameedit" style="display:none">
-        <input />
-        <input type="button" class="save" value="Save"/>
-        <input type="button" class="saving" value="Saving..." 
-               disabled style="display:none" />
-      </span>
-    </div>
+    <div class="name"></div>
     ID: <span class="id"></span><br/>
     IP: <span class="ip"></span><br/>
-    Image ID: <span class="imageid"></span><br/>
-    Flavor ID: <span class="flavorid"></span><br/>
+    Image: <span class="image"></span>
+    Flavor: <span class="flavor"></span><br/>
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -76,6 +67,14 @@
         rowClick: fillDetails
       });
 
+      var images = {};
+      service.images.createList(true).forEachAsync({
+        each: function(e) { images[e.id] = e; }
+      });
+      var flavors = {};
+      service.flavors.createList(true).forEachAsync({
+        each: function(e) { flavors[e.id] = e; }
+      });
 
       // Hook up event handlers to HTML
 
@@ -153,7 +152,8 @@
           modal.dialog("widget").find(":button").attr("disabled", true);
           var server = detail.data("server");
           service.servers.reboot({
-            entity: detail.data("server"),
+            entity: server,
+            hard: hard,
             success: function(updatedServer) {
               paginatedTable.replaceRowFor(server, updatedServer);
               fillDetails(null);
@@ -234,14 +234,105 @@
           return;
         }
 
-        $("#servers #detail").
+        var $details = $("#servers #detail");
+        $details.
           show().
-          data("server", server).
-          find(".name").html(server.name).end().
+          data("server", server);
+
+        function saved(oldServer, newServer) {
+          paginatedTable.replaceRowFor(oldServer, newServer);
+          fillDetails(newServer);
+          flash("Saved.");
+        }
+
+        $details.find(".name").showAndEdit({
+          originalValue: server.name,
+          display: function(value) { return value; },
+          makeEditUi: function(value) { 
+            return $('<input>').val(value).delay(0).select();
+          },
+          getValue: function($editUi) { return $editUi.val(); },
+          save: function(value, success, failure) {
+            if (!value) {
+              failure("Specify a name.");
+            }
+            else {
+              server.name = value;
+              service.servers.update({ 
+                entity: server, 
+                success: function(newEntity) { 
+                  saved(server, newEntity);
+                  success();
+                },
+                fault: function(fault) { failure(fault.message); }
+              });
+            }
+          }
+        });
+
+        // Return a <select> box with <option>s whose ids are the keys to the
+        // map and whose values are map[key][textAttribute].  The <option> whose
+        // id is selectedKey will be selected.
+        function selectBoxForMap(map, textAttribute, selectedKey) {
+          var result = $("<select>");
+          for (var key in map) {
+            $("<option>").
+              attr("id", key).
+              text(map[key][textAttribute]).
+              attr("selected", (selectedKey == key)).
+              appendTo(result);
+          }
+          return result;
+        }
+
+        $details.find(".image").showAndEdit({
+          originalValue: server.imageId,
+          display: function(value) { return images[value].name; },
+          makeEditUi: function(imageIdToSelect) { 
+            return selectBoxForMap(images, "name", imageIdToSelect);
+          },
+          getValue: function($editUi) {
+            return parseInt($editUi.find(":selected").attr("id"));
+          },
+          save: function(value, success, failure) {
+            service.servers.rebuild({ 
+              entity: server,
+              imageId: value,
+              success: function(newEntity) { 
+                saved(server, newEntity);
+                success();
+              },
+              fault: function(fault) { failure(fault.message); }
+            });
+          }
+        });
+
+        $details.find(".flavor").showAndEdit({
+          originalValue: server.flavorId,
+          display: function(value) { return flavors[value].name; },
+          makeEditUi: function(flavorIdToSelect) {
+            return selectBoxForMap(flavors, "name", flavorIdToSelect);
+          },
+          getValue: function($editUi) {
+            return parseInt($editUi.find(":selected").attr("id"));
+          },
+          save: function(value, success, failure) {
+            service.servers.resize({ 
+              entity: server,
+              flavorId: value,
+              success: function(newEntity) { 
+                saved(server, newEntity);
+                success();
+              },
+              fault: function(fault) { failure(fault.message); }
+            });
+          }
+        });
+
+
+        $details.
           find(".id").html(server.id).end().
-          find(".ip").html(server.addresses.public[0]).end().
-          find(".imageid").html(server.imageId).end().
-          find(".flavorid").html(server.flavorId).end();
+          find(".ip").html(server.addresses.public[0]).end();
 
         // Reset visibility of elements that may have been played with
         // during e.g. a name edit

@@ -29,6 +29,9 @@
       .error {
         color: red;
       }
+      a, a:visited {
+        color: blue;
+      }
       .joinus {
         font-style: italic;
         text-align: center;
@@ -49,6 +52,7 @@
     <script src="../cloudservers/entitylist.js"></script>
     <script src="../cloudservers/backupschedule.js"></script>
     <script src="paginatedtable.js"></script>
+    <script src="makeeditable.js"></script>
     <script>
       $(function() {
         $("html").bind("loggedIn", function(event, svc) {
@@ -103,5 +107,6 @@
       project at <a href="http://github.com/rackspace/groundcontrol"
         >github.com/rackspace/groundcontrol</a>!
     </div>
+
   </body>
 </html>
