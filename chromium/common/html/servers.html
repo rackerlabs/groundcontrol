@@ -5,8 +5,8 @@
 <div id="servers">
   <h2>Servers</h2>
 
-  <div id="listdiv" class="box">
-    <table id="list">
+  <div id="listdiv">
+    <table id="list" class="box">
       <thead>
         <tr>
           <th>Name</th>
@@ -18,15 +18,17 @@
       </tbody>
     </table>
     <input type="button" class="new" value="Create New"/>
-    <div class="newform" style="display:none">
+    <div class="newform box" style="display:none">
       <h3>Create New Server</h3>
       Name: <input class="name"/><br/>
       Image: <input class="imageid"/><br/> <!-- TODO image dropdown -->
       Flavor: <input class="flavorid"/><br/> <!-- TODO flavor dropdown -->
       <!-- TODO metadata keys & values? -->
+
       <input type="button" class="save" value="Create"/>
       <input type="button" class="saving" value="Saving..." 
              disabled style="display:none"/>
+      <input type="button" class="close" value="Cancel"/>
     </div>
 
   </div>
@@ -61,6 +63,7 @@
     Flavor ID: <span class="flavorid"></span><br/>
 
     <div><a href="#" class="delete">Delete</a></div>
+    <div><a href="#" class="reboot">Reboot</a></div>
   </div>
 
   <script>
@@ -78,6 +81,9 @@
 
       $("#servers .new").click(function() {
         $("#servers .newform").show();
+      });
+      $("#servers .newform .close").click(function() {
+        $("#servers .newform").hide();
       });
       $("#servers .newform .save").click(function() {
         var newform = $("#servers .newform");
@@ -132,11 +138,39 @@
               entity: server,
               success: function() {
                 paginatedTable.rowFor(server).remove();
-                detail.hide();
+                fillDetails(null);
                 flash("Deleted.");
               },
               fault: flashFault
             });
+          }
+        });
+      });
+
+      detail.find("a.reboot").click(function() {
+        function doReboot(modal, hard) {
+          modal.text("Rebooting...");
+          modal.dialog("widget").find(":button").attr("disabled", true);
+          var server = detail.data("server");
+          service.servers.reboot({
+            entity: detail.data("server"),
+            success: function(updatedServer) {
+              paginatedTable.replaceRowFor(server, updatedServer);
+              fillDetails(null);
+              modal.dialog("close");
+              flash("Rebooted.");
+            },
+            fault: function(fault) {
+              modal.dialog("close");
+              flashFault(fault);
+            }
+          });
+        }
+        $("<div>What kind of reboot?</div>").dialog({
+          title: "Confirm reboot",
+          buttons: {
+            "Hard": function() { doReboot($(this), true); },
+            "Soft": function() { doReboot($(this), false); },
           }
         });
       });
@@ -195,6 +229,11 @@
       }
 
       function fillDetails(server) {
+        if (!server) {
+          $("#servers #detail").hide();
+          return;
+        }
+
         $("#servers #detail").
           show().
           data("server", server).
