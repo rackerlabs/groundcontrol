@@ -208,15 +208,17 @@ __csapi_client.EntityManager.prototype = {
    * opts:object contains:
    *   entity:Entity to create.
    *   success?:function(entity) called when the entity has been created on the
-   *       server.  This may be after a significant delay for some entity
-   *       types.  Note that if you do not specify a success callback, the
-   *       system does not have to poll the server until completion, which
-   *       saves account resources.
+   *       server.  Note that if creation is a long process, you may receive
+   *       an entity before it is fully created; call wait() on the entity
+   *       to wait until it is fully created.  Note that if you do not specify
+   *       a success callback, the system does not have to poll the server
+   *       until completion, which saves account resources.
    *     entity:Entity the newly created entity.
    *   fault?:function(fault) called if there was an error in your request.
    *     fault:CloudServersFault the fault that occurred.
    */
   create: function(opts) {
+    opts.success = opts.success || function() {};
     opts.fault = opts.fault || function() {};
 
     var that = this;
@@ -225,22 +227,15 @@ __csapi_client.EntityManager.prototype = {
       path: "",
       data: that._dataForCreate(opts.entity),
       success: function(json, status, xhr) {
-        if (!opts.success) // no need to poll
-          return;
-
-        // Suck out the new entity so we have an id to wait on
+        // Suck out the new entity
         for (var key in json) { var newEntity = json[key]; break; }
         // TODO: They don't give us a last-modified date, but a good guess is
         // the current Date on the server.  If they start sending Last-Modified
         // back as I have requested, use that instead: the Date is not really
         // accurate, and not a supported API.
         newEntity._lastModified = xhr.getResponseHeader("Date");
-        // Wait for completion, then call success callback
-        that.wait({
-          entity: newEntity,
-          success: opts.success,
-          fault: opts.fault
-        });
+
+        opt.success(newEntity);
       },
       fault: opts.fault
     });
