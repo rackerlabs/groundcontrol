@@ -10,7 +10,7 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>RAM size</th>
+          <th>Status</th>
           <th>Public IP</th>
         </tr>
       </thead>
@@ -36,7 +36,7 @@
     <table> <!-- needed to store the <tr> which we actually care about -->
       <tr>
         <td><a href="#" class="name"></a></td>
-        <td class="ram"></td>
+        <td class="status"></td>
         <td class="ip"></td>
       </tr>
     </table>
@@ -112,7 +112,12 @@
               find(".saving").hide().end();
             flash("Created new server '" + newServer.name + "'.");
           },
-          fault: flashFault
+          fault: function(fault) {
+            newform.
+              find(".save").show().end().
+              find(".saving").hide().end();
+            flashFault(fault);
+          }
         });
 
       });
@@ -210,7 +215,7 @@
         var row = $("#servers #listitem tr").
           clone().
           find(".name").html(server.name).end().
-          find(".ram").html("unknown").end().
+          find(".status").html(server.status).end().
           find(".ip").html(server.addresses.public[0]).end();
         return row;
       }

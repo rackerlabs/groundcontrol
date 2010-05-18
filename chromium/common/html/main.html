@@ -7,13 +7,10 @@
     <link rel="stylesheet" href="../jquery/css/blitzer/jquery-ui-1.8.1.custom.css"/>
     <style>
       #maintitle {
-        background: url(../icons/sun-and-clouds-48.png) no-repeat center left;
+        background: url(../icons/sun-and-clouds-48.png) no-repeat left;
+        font: 36px serif;
         height:48px;
         padding-left:54px;
-      }
-      body > #whoami {
-        display: none;
-        float:right;
       }
       .box {
         border: 1px solid gray;
@@ -58,11 +55,11 @@
       $(function() {
         $("html").bind("loggedIn", function(event, svc) {
           service = svc; // make it global
-          $("body > #whoami").show().find("#name").text(service._username);
+          $("#whoami").show().find("#name").text(service._username);
           $("#container").load("servers.html");
         });
 
-        $("body > #whoami #logout").click(function() {
+        $("#whoami #logout").click(function() {
           delete service;
           var credentials = _get("loginCredentials");
           if (credentials) {
@@ -84,11 +81,23 @@
     </script>
   </head>
   <body>
-    <div id="whoami" class="box">
-      Hello, <span id="name"></span>! <a href="#" id="logout">log out</a>
-    </div>
-    <h1 id="maintitle">GroundControl</h1>
-    <div id="flash" class="info" style="display:none"></div>
+    <table id="header" width=100%>
+      <tr>
+        <td width=20%>
+          <span id="maintitle">GroundControl</span>
+        </td>
+        <td align=center>
+          <span id="flash" class="info" style="display:none"></span>
+        </td>
+        <td width=20% align=right>
+          <span id="whoami" class="box" style="display:none">
+            Hello,&nbsp;<span id="name"></span>!
+            <a href="#" id="logout">log&nbsp;out</a>
+          </span>
+        </td>
+      </tr>
+    </table>
+
     <div id="container"></div>
 
     <div class="joinus">
