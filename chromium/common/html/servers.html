@@ -23,13 +23,13 @@
     <div class="newform box" style="display:none">
       <h3>Create New Server</h3>
       Name: <input class="name"/><br/>
-      Image: <input class="imageid"/><br/> <!-- TODO image dropdown -->
-      Flavor: <input class="flavorid"/><br/> <!-- TODO flavor dropdown -->
+      Image: <span class="image"></span><br/>
+      Size: <span class="flavor"></span><br/>
       <!-- TODO metadata keys & values? -->
 
+      <div class="message" style="color: red"></div>
+
       <input type="button" class="save" value="Create"/>
-      <input type="button" class="saving" value="Saving..." 
-             disabled style="display:none"/>
       <input type="button" class="close" value="Cancel"/>
     </div>
 
@@ -51,7 +51,7 @@
     ID: <span class="id"></span><br/>
     IP: <span class="ip"></span><br/>
     <div>Image:&nbsp;<span class="image"></span></div>
-    <div>Flavor:&nbsp;<span class="flavor"></span></div>
+    <div>Size:&nbsp;<span class="flavor"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -79,7 +79,14 @@
       // Hook up event handlers to HTML
 
       $("#servers .new").click(function() {
-        $("#servers .newform").show();
+        $("#servers .newform").
+          find(".image").html(selectBoxForMap(images, "name")).end().
+          find(".flavor").html(selectBoxForMap(flavors, "name")).end().
+          find(".name").val("").end().
+          find(".message").hide().end().
+          find(".save").show().attr("disabled", false).end().
+          find(".cancel").show().attr("disabled", false).end().
+          show();
       });
       $("#servers .newform .close").click(function() {
         $("#servers .newform").hide();
@@ -87,41 +94,43 @@
       $("#servers .newform .save").click(function() {
         var newform = $("#servers .newform");
 
-        function filled(classname, msg) {
+        function empty(classname, msg) {
           if (newform.find(classname).val())
-            return true;
-          flash(msg);
-          return false;
+            return false;
+          newform.find(".message").text(msg).show();
+          return true;
         }
 
-        if (!filled(".imageid", "Invalid image ID")) return;
-        if (!filled(".flavorid", "Invalid flavor ID")) return;
-        if (!filled(".name", "Specify a name")) return;
+        if (empty(".image :selected", "Specify an image.")) return;
+        if (empty(".flavor :selected", "Specify a size.")) return;
+        if (empty(".name", "Specify a name.")) return;
             
         newform.
-          find(".save").hide().end().
-          find(".saving").show().end();
+          find(".save").val("Saving...").attr("disabled", true).end().
+          find(".message").hide().end().
+          find(".cancel").attr("disabled", true).end();
 
         service.servers.create({
           entity: {
             name: newform.find(".name").val(),
-            imageId: parseInt(newform.find(".imageid").val()),
-            flavorId: parseInt(newform.find(".flavorid").val())
+            imageId: parseInt(newform.find(".image :selected").attr("id")),
+            flavorId: parseInt(newform.find(".flavor :selected").attr("id"))
           },
           success: function(newServer) {
             paginatedTable.addRowFor(newServer);
             newform.
               hide().
               find(":text").val("").end().
-              find(".save").show().end().
-              find(".saving").hide().end();
+              find(".save").val("Create").attr("disabled", false).end().
+              find(".cancel").attr("disabled", false).end().
+              find(".message").hide().end();
             flash("Created new server '" + newServer.name + "'.");
           },
           fault: function(fault) {
             newform.
-              find(".save").show().end().
-              find(".saving").hide().end();
-            flashFault(fault);
+              find(".save").val("Create").attr("disabled", false).end().
+              find(".cancel").attr("disabled", false).end().
+              find(".message").show().text(fault.message);
           }
         });
 
@@ -173,42 +182,6 @@
         });
       });
 
-      detail.find("a.namechange").click(function() {
-        var server = detail.data("server");
-        detail.find(".namedisplay").hide();
-        detail.find(".nameedit").show().find(":text").val(server.name).select();
-      });
-
-      detail.find(".nameedit .save").click(function() {
-        var newname = detail.find(".nameedit :text").val();
-        if (!newname) {
-          flash("Invalid name.");
-          return;
-        }
-
-        detail.
-          find(".nameedit .save").hide().end().
-          find(".nameedit .saving").show().end();
-
-        var server = detail.data("server");
-
-        var oldname = server.name;
-        server.name = newname;
-        service.servers.update({
-          entity: server,
-          success: function(newServer) {
-            paginatedTable.replaceRowFor(server, newServer);
-            fillDetails(newServer);
-            flash("Saved.");
-          },
-          fault: function(fault) {
-            server.name = oldname;
-            fillDetails(server);
-            flashFault(fault);
-          }
-        });
-      });
-
       function verifyModal(opts) {
         opts.text = opts.text || "Really?";
         opts.title = opts.title || "Confirm";
@@ -232,13 +205,29 @@
         flash(message);
       }
 
+      // Return a <select> box with <option>s whose ids are the keys to the
+      // map and whose values are map[key][textAttribute].  The <option> whose
+      // id is selectedKey will be selected.
+      function selectBoxForMap(map, textAttribute, selectedKey) {
+        var result = $("<select>");
+        for (var key in map) {
+          $("<option>").
+            attr("id", key).
+            text(map[key][textAttribute]).
+            attr("selected", (selectedKey == key)).
+            appendTo(result);
+        }
+        return result;
+      }
+
       function fillDetails(server) {
+        var $details = $("#servers #detail");
+
         if (!server) {
-          $("#servers #detail").hide();
+          $details.hide();
           return;
         }
 
-        var $details = $("#servers #detail");
         $details.
           show().
           data("server", server);
@@ -267,21 +256,6 @@
             }
           }
         });
-
-        // Return a <select> box with <option>s whose ids are the keys to the
-        // map and whose values are map[key][textAttribute].  The <option> whose
-        // id is selectedKey will be selected.
-        function selectBoxForMap(map, textAttribute, selectedKey) {
-          var result = $("<select>");
-          for (var key in map) {
-            $("<option>").
-              attr("id", key).
-              text(map[key][textAttribute]).
-              attr("selected", (selectedKey == key)).
-              appendTo(result);
-          }
-          return result;
-        }
 
         $details.find(".image").showAndEdit({
           originalValue: server.imageId,
@@ -327,16 +301,9 @@
           }
         });
 
-
         $details.
           find(".id").html(server.id).end().
           find(".ip").html(server.addresses.public[0]).end();
-
-        // Reset visibility of elements that may have been played with
-        // during e.g. a name edit
-        $("#servers #detail").
-          find("*").show().end().
-          find(".nameedit").add(".saving").hide();
       }
 
       function createRow(server) {
@@ -347,7 +314,6 @@
           find(".ip").html(server.addresses.public[0]).end();
         return row;
       }
-
 
       paginatedTable.loadPage();
 
