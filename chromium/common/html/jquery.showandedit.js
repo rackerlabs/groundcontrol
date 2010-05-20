@@ -12,13 +12,10 @@
 //         call success() (in which case the new value will be displayed) or
 //         failure() (in which case the given error message will display.)
 jQuery.fn.showAndEdit = function(opts) {
-  var $el = this;
 
   var theValue = opts.originalValue;
-
   var $ui = $("<span>");
-  var $errormessage = $("<div>").css("color", "red");
-  $el.html($ui).append($errormessage);
+  this.html($ui);
 
   function display() {
     var chg = $('<a href="#">').
@@ -28,11 +25,11 @@ jQuery.fn.showAndEdit = function(opts) {
       click(function() { edit(); });
 
     $ui.html(opts.display(theValue)).append(chg);
-    $errormessage.hide();
   }
 
   function edit() {
     var $editUi = $(opts.makeEditUi(theValue));
+    var $errormessage = $("<div>").css("color", "red");
 
     var saveBtn = $('<input type="button">').val("Save").click(function() {
       $errormessage.hide();
@@ -54,7 +51,7 @@ jQuery.fn.showAndEdit = function(opts) {
     });
     var cancelBtn = $('<input type="button">').val("Cancel").click(display);
 
-    $ui.html($editUi).append(saveBtn).append(cancelBtn);
+    $ui.html($editUi).append(saveBtn).append(cancelBtn).append($errormessage);
   }
 
   display();

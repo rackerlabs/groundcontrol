@@ -10,7 +10,8 @@
 
   <div id="listdiv">
     <i>This table could maybe be a sidescrolling list of boxes a la 
-      grooveshark</i>
+      grooveshark</i> <!-- see http://jqueryui.com/demos/slider/#side-scroll
+    for a great example to use -->
     <table id="list" class="box">
       <thead>
         <tr>
@@ -51,11 +52,12 @@
 
   <div id="detail" style="display:none" class="box">
     <div><span class="name"></span></div>
-    <div>ID:&nbsp;<span class="id"></span></div>
-    <div>IP:&nbsp;<span class="ip"></span></div>
-    <div>Image:&nbsp;<span class="image"></span></div>
-    <div>Size:&nbsp;<span class="flavor"></span></div>
-    <div>Status:&nbsp;<span class="status"></span></div>
+    <div>ID: <span class="id"></span></div>
+    <div>IP: <span class="ip"></span></div>
+    <div>Image: <span class="image"></span></div>
+    <div>Size: <span class="flavor"></span></div>
+    <div>Status: <span class="status"></span></div>
+    <div>Backups: <span class="backupschedule"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -265,7 +267,7 @@
 
         $details.find(".image").showAndEdit({
           originalValue: server.imageId,
-          display: function(value) { return images[value].name; },
+          display: function(value) { return (images[value] || {}).name; },
           makeEditUi: function(imageIdToSelect) { 
             return selectBoxForMap(images, "name", imageIdToSelect);
           },
@@ -287,7 +289,7 @@
 
         $details.find(".flavor").showAndEdit({
           originalValue: server.flavorId,
-          display: function(value) { return flavors[value].name; },
+          display: function(value) { return (flavors[value] || {}).name; },
           makeEditUi: function(flavorIdToSelect) {
             return selectBoxForMap(flavors, "name", flavorIdToSelect);
           },
@@ -312,6 +314,119 @@
           find(".ip").html(server.addresses.public[0]).end().
           find(".status").text(server.status).end();
 
+        var $schedNode = $details.find(".backupschedule").html("");
+        $("<span>").text("Loading...").
+          css({"font-style": "italic", "color": "grey"}).
+          appendTo($schedNode);
+        service.servers.getSchedule({ entity: server,
+          success: function(schedule) {
+            var weekdayName = function(daynumber) {
+              var day = __csapi_client.BackupSchedule.
+                                         dayIntegerToString(daynumber);
+              if (day == "DISABLED")
+                return undefined;
+              return day[0] + day.slice(1).toLowerCase();
+            }
+            $schedNode.showAndEdit({
+              originalValue: schedule,
+              display: function(sched) {
+                var msg = "";
+                if (sched.weekly != undefined) {
+                  var day = weekdayName(sched.weekly);
+                  msg = "every " + day;
+                  if (sched.daily != undefined)
+                    msg += ", and ";
+                }
+                if (sched.daily != undefined)
+                  msg += "daily around " + sched.daily + ":00 GMT";
+                if (msg)
+                  msg = msg[0].toUpperCase() + msg.slice(1);
+                var span = $("<span>").text(msg);
+                if (!sched.enabled || !msg) {
+                  span.append(" (disabled)");
+                  span.css("font-style", "italic").css("color", "grey");
+                }
+                return span;
+              },
+              makeEditUi: function(sched) {
+                var enabled = $("<div>").text("Enabled");
+                $('<input type="checkbox"/>').
+                  attr("checked", sched.enabled).
+                  prependTo(enabled);
+
+                var daylabel = $("<div>").css("text-align", "center");
+                function setDayLabel(daynum) { 
+                  daylabel.text(weekdayName(daynum) || "(none)");
+                }
+                var dayslider = $("<div>").addClass("day slider").
+                  slider({
+                    min: -1, max: 6,
+                    value: (sched.weekly == undefined ? -1 : sched.weekly),
+                    slide: function(e, ui) { setDayLabel(ui.value); }
+                });
+                setDayLabel(sched.weekly);
+                var day = $("<div>").
+                  append('<div style="text-align:center">Weekly on:</div>').
+                  append(dayslider).
+                  append(daylabel);
+
+                var hourlabel = $("<div>").css("text-align", "center");
+                function setHourLabel(hournum) {
+                  if (hournum == -2)
+                    hourlabel.text("(none)");
+                  else
+                    hourlabel.text(hournum + ":00 GMT");
+                }
+                var hourslider = $("<div>").addClass("hour slider").
+                  slider({
+                    min: -2, max: 22, step: 2,
+                    value: (sched.daily == undefined ? -2 : sched.daily),
+                    slide: function(e, ui) { setHourLabel(ui.value); }
+                });
+                setHourLabel(sched.daily == undefined ? -2 : sched.daily);
+                var hour = $("<div>").
+                  append('<div style="text-align:center">Hourly around:</div>').
+                  append(hourslider).
+                  append(hourlabel);
+
+                var $uiRow = $("<table><tr></tr></table>").find("tr");
+                $("<td>").append(enabled).appendTo($uiRow);
+                $("<td>").append(day).appendTo($uiRow);
+                $("<td>").append(hour).appendTo($uiRow);
+                $uiRow.find("td").css("align", "center").css("padding", 10);
+                $uiRow.find(".slider").css({
+                  width: 150,
+                  height: 10,
+                  margin: 5
+                });
+                return $uiRow.parent(); // the <table>
+
+              },
+              getValue: function($editUi) {
+                var day = $(".day", $editUi).slider("value");
+                var hour = $(".hour", $editUi).slider("value");
+                return {
+                  enabled: !!$(":checkbox", $editUi).attr("checked"),
+                  weekly: (day == -1 ? undefined : day),
+                  daily: (hour == -2 ? undefined : hour)
+                };
+              },
+              save: function(newSched, success, failure) {
+                service.servers.setSchedule({
+                  entity: server,
+                  enabled: newSched.enabled,
+                  weekly: newSched.weekly,
+                  daily: newSched.daily,
+                  success: function() { 
+                    updated(server, server, "Backup schedule saved.");
+                    success(); 
+                  },
+                  fault: function(fault) { failure(fault.message); }
+                });
+              }
+            });
+          }
+        });
       }
 
       function createRow(server) {
