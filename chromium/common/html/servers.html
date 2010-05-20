@@ -1,5 +1,8 @@
 <style>
   /* TODO: make this page purty */
+  #servers #detail .name:not(input) {
+    font-size:30px;
+  }
 </style>
 
 <div id="servers">
@@ -47,11 +50,12 @@
   </div>
 
   <div id="detail" style="display:none" class="box">
-    <div class="name"></div>
-    ID: <span class="id"></span><br/>
-    IP: <span class="ip"></span><br/>
+    <div><span class="name"></span></div>
+    <div>ID:&nbsp;<span class="id"></span></div>
+    <div>IP:&nbsp;<span class="ip"></span></div>
     <div>Image:&nbsp;<span class="image"></span></div>
     <div>Size:&nbsp;<span class="flavor"></span></div>
+    <div>Status:&nbsp;<span class="status"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -140,6 +144,24 @@
       detail.find("a.delete").click(function() {
         var server = detail.data("server");
 
+        // TODO: inline this if no one else uses it
+        function verifyModal(opts) {
+          opts.text = opts.text || "Really?";
+          opts.title = opts.title || "Confirm";
+          var yes = opts.yes || function() {};
+          var no = opts.no || function() {};
+          var answer = function(callback) {
+            return function() {
+              $(this).dialog("close");
+              callback();
+            }
+          }
+          $("<div>").text(opts.text).dialog({
+            title: opts.title,
+            buttons: { "Yes": answer(yes), "No": answer(no) },
+          });
+        }
+
         verifyModal({
           yes: function() {
             service.servers.remove({
@@ -182,26 +204,10 @@
         });
       });
 
-      function verifyModal(opts) {
-        opts.text = opts.text || "Really?";
-        opts.title = opts.title || "Confirm";
-        var yes = opts.yes || function() {};
-        var no = opts.no || function() {};
-        var answer = function(callback) {
-          return function() {
-            $(this).dialog("close");
-            callback();
-          }
-        }
-        $("<div>").text(opts.text).dialog({
-          title: opts.title,
-          buttons: { "Yes": answer(yes), "No": answer(no) },
-        });
-      }
-
       function updated(oldServer, newServer, message) {
         paginatedTable.replaceRowFor(oldServer, newServer);
-        fillDetails(newServer);
+        if ($("#servers #detail").data("server") == oldServer)
+          fillDetails(newServer);
         flash(message);
       }
 
@@ -303,7 +309,9 @@
 
         $details.
           find(".id").html(server.id).end().
-          find(".ip").html(server.addresses.public[0]).end();
+          find(".ip").html(server.addresses.public[0]).end().
+          find(".status").text(server.status).end();
+
       }
 
       function createRow(server) {
