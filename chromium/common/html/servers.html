@@ -1,7 +1,15 @@
 <style>
   /* TODO: make this page purty */
-  #servers #detail .name:not(input) {
+  #servers #detail .namedisplay {
     font-size:30px;
+  }
+  .editlink {
+    font-size: small;
+    margin-left: 20px;
+  }
+  .greymessage {
+    font-style: italic;
+    color: grey;
   }
 </style>
 
@@ -242,7 +250,9 @@
 
         $details.find(".name").showAndEdit({
           originalValue: server.name,
-          display: function(value) { return value; },
+          display: function(value) { 
+            return $("<span>").addClass("namedisplay").text(value);
+          },
           makeEditUi: function(value) { 
             return $('<input>').val(value).delay(0).select();
           },
@@ -314,9 +324,40 @@
           find(".ip").html(server.addresses.public[0]).end().
           find(".status").text(server.status).end();
 
+        if (server.status == "VERIFY_RESIZE") {
+          var controls = $("<span>");
+          var saving = $("<span>").
+            text("Saving...").addClass("greymessage").css("margin-left", 20);
+          var links = $("<span>");
+          controls.html(links);
+
+          function doit(fnName) {
+            controls.html(saving);
+            service.servers[fnName]({
+              entity: server,
+              success: function(updatedServer) {
+                conrols.html(links);
+                updated(server, updatedServer, "Saved.");
+              },
+              fault: function(fault) { 
+                controls.html(links);
+                flashFault(fault);
+              }
+            });
+          }
+          var revertLink = $('<a href="#">').
+            addClass("editlink").text("undo resize").
+            click(function() { doit('revertResize'); });
+          var confirmLink = $('<a href="#">').
+            addClass("editlink").text("confirm resize").
+            click(function() { doit('confirmResize'); });
+          links.append(revertLink).append(confirmLink);
+
+          $details.find(".status").append(controls);
+        }
+
         var $schedNode = $details.find(".backupschedule").html("");
-        $("<span>").text("Loading...").
-          css({"font-style": "italic", "color": "grey"}).
+        $("<span>").text("Loading...").addClass("greymessage").
           appendTo($schedNode);
         service.servers.getSchedule({ entity: server,
           success: function(schedule) {
@@ -343,8 +384,7 @@
                   msg = msg[0].toUpperCase() + msg.slice(1);
                 var span = $("<span>").text(msg);
                 if (!sched.enabled || !msg) {
-                  span.append(" (disabled)");
-                  span.css("font-style", "italic").css("color", "grey");
+                  span.addClass("greymessage").append(" (disabled)");
                 }
                 return span;
               },

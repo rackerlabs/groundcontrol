@@ -19,9 +19,7 @@ jQuery.fn.showAndEdit = function(opts) {
 
   function display() {
     var chg = $('<a href="#">').
-      text("change").
-      css("margin-left", 5).
-      css("font-size", "small").
+      addClass("editlink").text("change").
       click(function() { edit(); });
 
     $ui.html(opts.display(theValue)).append(chg);
