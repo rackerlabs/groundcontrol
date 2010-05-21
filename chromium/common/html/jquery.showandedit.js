@@ -27,10 +27,13 @@ jQuery.fn.showAndEdit = function(opts) {
 
   function edit() {
     var $editUi = $(opts.makeEditUi(theValue));
+    // We don't attach this node just yet as we're trying hard to be an inline
+    // span as long as we can... adding a div to our span seems to make us wrap
+    // to the next line.
     var $errormessage = $("<div>").css("color", "red");
 
     var saveBtn = $('<input type="button">').val("Save").click(function() {
-      $errormessage.hide();
+      $errormessage.remove();
       saveBtn.val("Saving...").attr("disabled", true);
       cancelBtn.attr("disabled", true);
       var newValue = opts.getValue($editUi);
@@ -41,7 +44,7 @@ jQuery.fn.showAndEdit = function(opts) {
           display();
         },
         function(message) {
-          $errormessage.text(message).show();
+          $errormessage.text(message).appendTo($ui);
           saveBtn.val("Save").attr("disabled", false);
           cancelBtn.attr("disabled", false);
         }
@@ -49,7 +52,7 @@ jQuery.fn.showAndEdit = function(opts) {
     });
     var cancelBtn = $('<input type="button">').val("Cancel").click(display);
 
-    $ui.html($editUi).append(saveBtn).append(cancelBtn).append($errormessage);
+    $ui.html($editUi).append(saveBtn).append(cancelBtn);
   }
 
   display();
