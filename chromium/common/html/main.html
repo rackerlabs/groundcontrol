@@ -7,21 +7,36 @@
    <link rel="stylesheet" href="../jquery/css/blitzer/jquery-ui-1.8.1.custom.css"/>
    <link href='http://fonts.googleapis.com/css?family=Droid+Sans|Reenie+Beanie' rel='stylesheet' type='text/css'>
     <style>
-      body {
-        font-family: "Droid Sans", arial, sans-serif;
+      * {
+        margin: 0px;
+        padding: 0px;
       }
+
+      body {
+        background-color: #5e6a79;
+        font-family: Verdana;
+        font-size: 12px;
+      }
+
+      #whoami {
+        margin-bottom: 20px;
+        height: 21px;
+        background: url("../images/whoami-bg.gif") repeat-x;
+      }
+
+      #whoami p {
+        padding-top: 3px;
+        padding-right: 8px;
+        text-align: right;
+      }
+
       #maintitle {
         background: url(../icons/sun-and-clouds-48.png) no-repeat left;
         font: bold italic 55px "Reenie Beanie", arial, sans-serif;
         height:48px;
         padding-left:54px;
       }
-      .box {
-        border: 1px solid gray;
-        margin:5px;
-        padding:5px;
-        background: white;
-      }
+
       .info {
         margin: 5px;
         padding: 5px;
@@ -30,16 +45,23 @@
         background: #ffa;
         border: 1px solid #aa8;
       }
+
       .error {
         color: red;
       }
-      a, a:visited {
-        color: blue;
+
+      a {
+        text-decoration: none;
+        color: #600;
       }
+
       .joinus {
+        margin-left: 20px;
+        width: 700px;
+        color: #f7f7f7;
+        font-size: 10px;
         font-style: italic;
         text-align: center;
-        width:100%;
       }
     </style>
     <script src="../jquery/jquery-1.4.2.min.js"></script>
@@ -87,6 +109,10 @@
     </script>
   </head>
   <body>
+    <div id="whoami" style="display:none">
+      <p><span id="name" style="font-weight: bold;"></span> <small>[<a href="#" id="logout">logout</a>]</small></p>
+    </div>
+
     <table id="header" width=100%>
       <tr>
         <td width=20%>
@@ -95,21 +121,14 @@
         <td align=center>
           <span id="flash" class="info" style="display:none"></span>
         </td>
-        <td width=20% align=right>
-          <span id="whoami" class="box" style="display:none">
-            Hello,&nbsp;<span id="name"></span>!
-            <a href="#" id="logout">log&nbsp;out</a>
-          </span>
-        </td>
       </tr>
     </table>
 
     <div id="container"></div>
 
     <div class="joinus">
-      GroundControl is in alpha and is open source.  Come contribute to the
-      project at <a href="http://github.com/rackspace/groundcontrol"
-        >github.com/rackspace/groundcontrol</a>!
+      GroundControl is in alpha and is open source. Come contribute to the
+      project at <a href="http://github.com/rackspace/groundcontrol">GitHub</a>!
     </div>
 
   </body>

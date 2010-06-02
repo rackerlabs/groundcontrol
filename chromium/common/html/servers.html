@@ -1,12 +1,94 @@
 <style>
-  /* TODO: make this page purty */
-  #servers #detail .namedisplay {
-    font-size:30px;
+  #servers {
+    width: 720px;
   }
+
+  #top {
+    margin-top: 20px;
+    margin-left: 20px;
+    height: 39px;
+    background: url("../images/list-header.gif") no-repeat;
+  }
+
+  #top p {
+    padding-top: 3px;
+    font-size 13px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  #listdiv {
+    margin-left: 20px;
+    background: url("../images/list-bg.gif") repeat-y;
+  }
+
+  #list {
+    margin-left: 6px;
+    padding-bottom: 20px;
+    width: 673px;
+  }
+
+  #list th {
+    padding-top: 5px;
+    padding-bottom: 6px;
+    padding-left: 3px;
+    text-align: left;
+  }
+
+  #list tr:hover {
+    background-color: #d1daed;
+  }
+
+  #list td {
+    padding: 3px;
+  }
+
+  #newbutton {
+    padding-right: 26px;
+    text-align: right;
+  }
+
+  #createcancel {
+    margin-top: 10px;
+    text-align: right;
+  }
+
+  #bottom {
+    margin-bottom: 20px;
+    margin-left: 20px;
+    height: 43px;
+    background: url("../images/list-footer.gif") no-repeat;
+  }
+
+  #detail {
+    padding: 10px;
+    width: 400px;
+    border: 3px solid #000;
+    background-color: #f1f1f1;
+  }
+
+  .newform {
+    margin-left: 15px;
+    width: 330px;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    padding: 10px;
+  }
+
+  .newform h3 {
+    margin-bottom: 10px;
+  }
+
+  .newform p {
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
+
   .editlink {
     font-size: small;
     margin-left: 20px;
   }
+
   .greymessage {
     font-style: italic;
     color: grey;
@@ -14,13 +96,10 @@
 </style>
 
 <div id="servers">
-  <h2>Servers</h2>
+  <div id="top"><p>Servers</p></div>
 
   <div id="listdiv">
-    <i>This table could maybe be a sidescrolling list of boxes a la 
-      grooveshark</i> <!-- see http://jqueryui.com/demos/slider/#side-scroll
-    for a great example to use -->
-    <table id="list" class="box">
+    <table id="list" cellpadding="0" cellspacing="0">
       <thead>
         <tr>
           <th>Name</th>
@@ -31,21 +110,30 @@
       <tbody>
       </tbody>
     </table>
-    <input type="button" class="new" value="Create New"/>
-    <div class="newform box" style="display:none">
+
+    <div id="newbutton">
+      <input type="button" class="new" value="Create New"/>
+    </div>
+
+    <div class="newform" style="display:none">
       <h3>Create New Server</h3>
-      Name: <input class="name"/><br/>
-      Image: <span class="image"></span><br/>
-      Size: <span class="flavor"></span><br/>
+      <p>Name <input class="name"/></p>
+      <p>Image <span class="image"></span></p>
+      <p>Size <span class="flavor"></span></p>
       <!-- TODO metadata keys & values? -->
 
       <div class="message" style="color: red"></div>
 
-      <input type="button" class="save" value="Create"/>
-      <input type="button" class="close" value="Cancel"/>
+      <div id="createcancel">
+        <input type="button" class="save" value="Create"/>
+        <input type="button" class="close" value="Cancel"/>
+      </div>
     </div>
 
+    <div class="spacer">&nbsp;</div>
   </div>
+
+  <div id="bottom"></div>
 
   <!-- Holds an item to be cloned and added to the list once per entity -->
   <div id="listitem" style="display:none">
@@ -58,7 +146,8 @@
     </table>
   </div>
 
-  <div id="detail" style="display:none" class="box">
+  <div id="detail" style="display:none">
+  <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
     <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
     <div>IP: <span class="ip"></span></div>
