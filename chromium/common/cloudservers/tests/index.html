@@ -1,0 +1,44 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>CSAPI Javascript binding Unit Tests</title>
+    <script src="../../jquery/jquery-1.4.2.min.js"></script>
+    <script src="../../functions.js"></script>
+    <script src="../service.js"></script>
+    <script src="../faults.js"></script>
+    <script src="../entitymanager.js"></script>
+    <script src="../servermanager.js"></script>
+    <script src="../imagemanager.js"></script>
+    <script src="../sharedipgroupmanager.js"></script>
+    <script src="../flavormanager.js"></script>
+    <script src="../notifypoller.js"></script>
+    <script src="../entitylist.js"></script>
+    <script src="../backupschedule.js"></script>
+    <script src="ghettotest.js"></script>
+    <script src="tests.js"></script>
+    <script>
+      $(function() {
+        ghettotest.setResultsDiv($("#results"));
+        ghettotest.setLogDiv($("#log"));
+        ghettotest.run("tests.js");
+      });
+    </script>
+    <style>
+      div {
+        height: 200px;
+        width: 800px;
+        overflow-y: auto;
+        background: #cccccc;
+        border: 1px solid black;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Results</h2>
+    <div id="results"></div>
+    <h2>Log</h2>
+    <div id="log"></div>
+  </body>
+</html>
