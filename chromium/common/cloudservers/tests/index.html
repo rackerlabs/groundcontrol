@@ -20,9 +20,16 @@
     <script src="tests.js"></script>
     <script>
       $(function() {
-        ghettotest.setResultsDiv($("#results"));
-        ghettotest.setLogDiv($("#log"));
-        ghettotest.run("tests.js");
+        var ghettotest = new TestRunner({
+          resultsDiv: $("#results"),
+          logDiv: $("#log"),
+        });
+        // ghettotest.runTests(ExampleTests);
+        var cred = _get("loginCredentials") || {
+          username: prompt("Enter username for tests"),
+          apiKey: prompt("Enter API Key")
+        };
+        ghettotest.runTests(new ServerTests(cred.username, cred.apiKey));
       });
     </script>
     <style>

@@ -1,31 +1,14 @@
 // Requires jQuery.
 
-var ghettotest = {
-  setResultsDiv: function(div) {
-    TestSuite.prototype._resultsTable = $("<table>").
-      append("<tr><th>Test</th><th>Result</th></table>").
-      css("width", "100%");
-    div.html(TestSuite.prototype._resultsTable);
-  },
-
-  setLogDiv: function(div) {
-    div.html("");
-    TestSuite.prototype._logDiv = div;
-  },
-
-  run: function(filename) {
-    // TODO
-    new ExampleTests().runTests();
-  }
-}
-
-// An object allowing asynchronous tests to confirm success or failure.
+// An object allowing asynchronous tests to confirm success or failure and to
+// log messages.
 // Constructor takes an object containing:
 //   done:function(successful:bool, failureMessage:string) called when
 //       success() or failure() are called upon the object.
 //   timeoutMs?:integer number of milliseconds before failure() should be
 //       automatically called, if success() or failure() are not called by then.
 function DeferredResult(opts) {
+  this.log = opts.log || function() { /* Logs ignored */ };
   this.done = opts.done || function() {};
   if (opts.timeoutMs) {
     this.setTimeout(opts.timeoutMs);
@@ -55,32 +38,75 @@ DeferredResult.prototype = {
   _destroy: function(message) {
     this.failure = function() {};
     this.success = function() {};
+    this.log = function() {};
     window.clearTimeout(this._timer);
   }
 };
 
-function TestSuite() {
+function TestRunner(opts) {
+  this._logDiv = opts.logDiv.html("");
+
+  this._resultsTable = $("<table>").
+    append("<tr><th>Test</th><th>Result</th></table>").
+    css("width", "100%");
+  opts.resultsDiv.html(this._resultsTable);
 }
-TestSuite.prototype = {
+TestRunner.prototype = {
   __proto__: null,
-
-  _logDiv: undefined,
-
-  _resultsTable: undefined,
 
   log: function(msg) {
     this._logDiv.append(msg + "<br/>");
   },
 
+  // Run suite.init(), then all suite.test* methods, then suite.destroy().
+  // Assumes that all test* methods can be run in parallel.
+  runTests: function(suite) {
+    var that = this;
+    suite.init = suite.init || function(result) { result.success(); };
+    suite.destroy = suite.destroy || function(result) { result.success(); };
+
+    // Run init on its own so we can abort if it fails.
+    this._runOneTest(suite, "init", function(successful) {
+      if (!successful) return;
+
+      var testNames = [];
+      for (var attr in suite) {
+        if (attr.indexOf("test") == 0) testNames.push(attr);
+      }
+      testNames.push("destroy");
+      that._runNextTest(suite, testNames);
+    });
+  },
+
+  // Pop a test name off the given list, find it in the given suite, and
+  // execute it.  When it finishes, recurse.
+  _runNextTest: function(suite, testNames) {
+    if (testNames.length == 0) {
+      if (!this.failedAtLeastOnce)
+        this._resultsTable.css("background", "#88ff00");
+      return;
+    }
+
+    var testName = testNames.shift();
+
+    var that = this;
+    this._runOneTest(suite, testName, function() {
+      that._runNextTest(suite, testNames);
+    });
+  },
+
   // Run the test with the given name, update the UI with the test results, and
   // call callback(successful:bool) upon completion.
-  _runOneTest: function(testName, callback) {
+  _runOneTest: function(suite, testName, callback) {
     var resultLine = $("<tr>").append($("<td>")).append($("<td>"));
     resultLine.find("td").css("margin", 10);
     this._resultsTable.append(resultLine);
     var that = this;
-    var deferred = new DeferredResult({
+    var result = new DeferredResult({
       timeoutMs: 60000,
+      log: function(msg) { 
+        that._logDiv.append(msg + "<br/>");
+      },
       done: function(successful, failureMessage) {
         var msg = successful ? "OK" : "FAILURE: " + failureMessage;
         resultLine.find("td:last-child").text(msg);
@@ -96,124 +122,75 @@ TestSuite.prototype = {
     if (printedName.indexOf("test") == 0)
       printedName = printedName.slice(4);
     resultLine.find("td:first-child").text(printedName);
-    try {
-      var result = this[testName](deferred);
-      if (result != deferred) {
-        (result === true) ? deferred.success() : deferred.failure(result);
+    window.setTimeout(function() {
+      try {
+        suite[testName](result);
       }
-    }
-    catch (e) {
-      deferred.failure("Exception thrown: '" + e.message + "'");
-    }
-  },
-
-  // Run this.init(), then all this.test* methods, then this.destroy().
-  // Assumes that all test* methods can be run in parallel.
-  runTests: function() {
-    this.init = this.init || function() { return true; };
-    this.destroy = this.destroy || function() { return true; };
-
-    var that = this;
-    this._runOneTest("init", function(successful) {
-      if (!successful) return;
-
-      var testNames = [];
-      for (var attr in that) {
-        if (attr.indexOf("test") == 0) testNames.push(attr);
+      catch (e) {
+        result.failure("Exception thrown: '" + e.message + "'");
       }
-      that._runNextTest(testNames);
-    });
-  },
-
-  // Pop a test name off the given list and execute it.  When it finishes,
-  // recurse.
-  _runNextTest: function(testNames) {
-    if (!testNames || testNames.length == 0) {
-      this._runOneTest("destroy", function() {
-        if (!this.failedAtLeastOnce)
-          this._resultsTable.css("background", "#88ff00");
-      });
-      return;
-    }
-
-    var testName = testNames.shift();
-
-    var that = this;
-    this._runOneTest(testName, function() {
-      window.setTimeout(function() {
-        that._runNextTest(testNames);
-      }, 0);
-    });
+    }, 0);
   }
+
 }
 
-function ExampleTests() {
+function ExampleTests(log) {
+  this.log = log;
 }
 ExampleTests.prototype = {
-  __proto__: TestSuite.prototype,
-
-  init: function(dfr) {
-    this.log("I'm initializing now!");
-    return true;
+  init: function(result) {
+    result.log("I'm initializing now!");
+    result.success();
   },
 
-  testSuccessSimple: function(dfr) {
-    return true;
+  testSuccessSimple: function(result) {
+    result.success();
   },
 
-  testFailureSimple: function(dfr) {
-    return "Failure!";
+  testFailureSimple: function(result) {
+    result.failure("Failure!");
   },
 
-  testFailureException: function(dfr) {
+  testFailureException: function(result) {
     throw new Error("I intentionally threw this.");
   },
 
-  testSuccessDeferred: function(dfr) {
-    window.setTimeout(function() { dfr.success(); }, 1000);
-    return dfr;
+  testSuccessDeferred: function(result) {
+    window.setTimeout(function() { result.success(); }, 1000);
   },
 
-  testFailureDeferred: function(dfr) {
-    window.setTimeout(function() { dfr.failure("I failed after 500ms."); }, 500);
-    return dfr;
+  testFailureDeferred: function(result) {
+    window.setTimeout(function() { result.failure("I failed after 500ms."); }, 500);
   },
 
-  testSuccessSimpleWithIncorrectDeferUsage: function(dfr) {
-    window.setTimeout(function() { dfr.failure("Hi"); }, 1);
-    // forget to return dfr
-    return true;
+  testFailureNoAction: function(result) {
   },
 
-  testFailureTimeout: function(dfr) {
+  testFailureTimeout: function(result) {
     // do nothing; we should time out.
-    dfr.setTimeout(1000);
-    return dfr;
+    result.setTimeout(1000);
   },
 
-  testSuccessSimpleDespiteDeferTimeout: function(dfr) {
+  testSuccessSimpleBeforeTimeout: function(result) {
     // The timeout shouldn't be reached because we return non-deferred.
-    dfr.setTimeout(1000);
-    return true;
+    result.setTimeout(1000);
+    result.success();
   },
 
-  testSuccessDeferredBeforeTimeout: function(dfr) {
+  testSuccessDeferredBeforeTimeout: function(result) {
     // finish before the timeout.
-    dfr.setTimeout(1000);
-    window.setTimeout(function() { dfr.success(); }, 800);
-    return dfr;
+    result.setTimeout(1000);
+    window.setTimeout(function() { result.success(); }, 800);
   },
 
-  testFailureTimeoutBeforeDeferredSuccess: function(dfr) {
+  testFailureTimeoutBeforeDeferredSuccess: function(result) {
     // Attempt to finish after the timeout.
-    dfr.setTimeout(1000);
-    window.setTimeout(function() { dfr.success(); }, 2000);
-    return dfr;
+    result.setTimeout(1000);
+    window.setTimeout(function() { result.success(); }, 2000);
   },
 
-  destroy: function() {
-    this.log("I'm destroying myself now!");
-    return true;
+  destroy: function(result) {
+    result.log("I'm destroying myself now!");
+    result.success();
   }
 }
-

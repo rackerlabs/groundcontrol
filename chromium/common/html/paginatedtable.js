@@ -42,10 +42,10 @@ PaginatedTable.prototype = {
       each: function(entity) {
         that.addRowFor(entity);
       },
-      complete: function(count) {
+      complete: function(entities) {
         that._currentPage += 1;
 
-        if (count == PAGE_SIZE) { // didn't reach end of list
+        if (entities.length == PAGE_SIZE) { // didn't reach end of list
           that._more.
             find(".loading").hide().end().
             find("a").show();

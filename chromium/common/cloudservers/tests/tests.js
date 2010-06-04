@@ -7,86 +7,105 @@ function CSAPITests(opts) {
     opts.apiKey = prompt("Enter API key for tests");
   }
 }
-function ServerTests() {
-  TestSuite.call(this);
+function ServerTests(username, apiKey) {
+  this.username = username;
+  this.apiKey = apiKey;
 }
 ServerTests.prototype = {
-  __proto__: TestSuite,
-
-  init: function(deferred) {
-    //this.service = blah
-    //this.entities = blah
-    //(deferred.done() when finished)
-
-    return deferred;
+  init: function(result) {
+    result.setTimeout(5000);
+    result.log("Logging in...");
+    try {
+      var client = com.rackspace.cloud.servers.api.client;
+      this.service = new client.CloudServersService({
+        username: this.username,
+        apiKey: this.apiKey
+      });
+    }
+    catch (fault) {
+      result.failure("Couldn't log in: " + fault.message);
+    }
+    result.log("Making entities");
+    result.setTimeout(60000);
+    // Make some entities for tests to use
+    var that = this;
+    that.service.servers.createList(true, 0, 3).forEachAsync({
+      each: function() { },
+      complete: function(entities) {
+        that.entities = entities;
+        result.success();
+      },
+      fault: function(fault) { result.failure(fault.message); }
+    });
   },
 
-  testReboot: function(deferred) {
+  testReboot: function(result) {
     this.service.servers.reboot({
       entity: this.entities[0],
-      success: function() { deferred.success(); },
-      fault: function(fault) { deferred.failure(fault.message); }
+      success: function() { result.success(); },
+      fault: function(fault) { result.failure(fault.message); }
     });
-    return deferred;
   },
 
-  testGetBackupSchedule: function(deferred) {
-    this.service.servers.getBackupSchedule({
+  testGetBackupSchedule: function(result) {
+    this.service.servers.getSchedule({
       entity: this.entities[1],
       success: function(schedule) { 
         if (schedule.enabled == false && 
             schedule.weekly == undefined &&
             schedule.daily == undefined) {
-          deferred.success();
+          result.success();
         } else {
-          deferred.failure("Wrong backup schedule")
+          result.failure("Wrong backup schedule")
         }
       },
-      fault: function(fault) { deferred.failure(fault.message); }
+      fault: function(fault) { result.failure(fault.message); }
     });
-    return deferred;
   },
 
   // Assure that setting the given backup schedule allows us to get the same
   // schedule in return.  Not very interesting unless entity's schedule is
   // different from the one passed to the test.
-  _testSettingABackupSchedule: function(schedule, entity, deferred) {
-    this.service.servers.setBackupSchedule({
+  _testSettingABackupSchedule: function(testSchedule, result) {
+    var that = this;
+    var entity = this.entities[2];
+    that.service.servers.setSchedule({
       entity: entity,
-      schedule: testSchedule,
+      enabled: testSchedule.enabled,
+      weekly: testSchedule.weekly,
+      daily: testSchedule.daily,
       success: function() { 
-        this.service.servers.getBackupSchedule({
+        that.service.servers.getSchedule({
           entity: entity,
           success: function(newSchedule) {
             if (newSchedule.enabled == testSchedule.enabled && 
                 newSchedule.weekly == testSchedule.weekly &&
                 newSchedule.daily == testSchedule.daily) {
-              deferred.success();
+              result.success();
             } else {
-              deferred.failure("Wrong backup schedule")
+              result.failure("Wrong backup schedule")
             }
           },
-          fault: function(fault) { deferred.failure(fault.message); }
+          fault: function(fault) { result.failure(fault.message); }
         });
       },
-      fault: function(fault) { deferred.failure(fault.message); }
+      fault: function(fault) { result.failure(fault.message); }
     });
-    return deferred;
   },
 
-  testSetBackupSchedule1: function(deferred) {
+  testSetBackupSchedule1: function(result) {
     var testSchedule = { enabled: true, weekly: 4, daily: 22 };
-    return this._testSettingABackupSchedule(testSchedule, deferred);
+    return this._testSettingABackupSchedule(testSchedule, result);
   },
 
-  testSetBackupSchedule2: function(deferred) {
+  testSetBackupSchedule2: function(result) {
     var testSchedule = { enabled: false, weekly: 4 };
-    return this._testSettingABackupSchedule(testSchedule, deferred);
+    this._testSettingABackupSchedule(testSchedule, result);
   },
 
-  testSetBackupSchedule3: function(deferred) {
+  testSetBackupSchedule3: function(result) {
     var testSchedule = { enabled: true, daily: 0};
-    return this._testSettingABackupSchedule(testSchedule, deferred);
+    this._testSettingABackupSchedule(testSchedule, result);
   },
 
 } // end ServerTests

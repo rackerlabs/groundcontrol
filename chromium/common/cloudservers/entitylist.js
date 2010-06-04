@@ -108,10 +108,10 @@ __csapi_client.EntityList.prototype = {
    *       each() will be in list order.
    *     entity:Entity the entity from the list.
    *
-   *   complete?:function(count) called once all entities have had each() called
+   *   complete?:function(entities) called once all entities have had each() called
    *       upon them, if there was no fault.  This is called even if there
    *       no entities in the list.
-   *     count:integer the number of times each() was called.
+   *     entities:list_of_Entity the entities from each call to each().
    *
    *   fault?:function(fault)
    *     fault:CloudServersFault the fault that occurred
@@ -120,20 +120,22 @@ __csapi_client.EntityList.prototype = {
     opts.complete = opts.complete || function() {};
 
     var that = this;
-    var visitOneItem = function(count) {
+    var entities = [];
+    var fetchNext = function() {
       that._nextAsync({
         success: function(entity) {
           if (entity) {
             opts.each(entity);
-            visitOneItem(count + 1); // visit the next item
+            entities.push(entity);
+            fetchNext();
           } else {
-            opts.complete(count);
+            opts.complete(entities);
           }
         },
         fault: opts.fault
       });
     };
-    visitOneItem(0); // start the process
+    fetchNext(); // start the process
   },
 
   /**
