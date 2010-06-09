@@ -60,6 +60,10 @@ PaginatedTable.prototype = {
   addRowFor: function(entity) {
     var newRow = this._createRow(entity).data("entity", entity);
     this._more.before(newRow);
+    if (newRow.prev().hasClass("odd"))
+      newRow.addClass("even");
+    else
+      newRow.addClass("odd");
     newRow.effect("highlight", {}, 3000);
   },
 
