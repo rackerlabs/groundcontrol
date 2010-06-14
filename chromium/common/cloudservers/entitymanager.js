@@ -438,7 +438,8 @@ __csapi_client.EntityManager.prototype = {
    *
    * callback:function(event) called each time the entity changes.
    *   event:object contains:
-   *     error:bool true if there was a problem communicating with the server
+   *     error:bool true if there was a problem communicating with the server.
+   *         callback will be automatically deregistered if this is true.
    *     targetEntity:Entity the changed entity, if error is false
    *     fault:CloudServersFault the fault that occurred, if error is true
    */

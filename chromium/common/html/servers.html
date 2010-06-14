@@ -429,7 +429,7 @@
             service.servers[fnName]({
               entity: server,
               success: function(updatedServer) {
-                conrols.html(links);
+                controls.html(links);
                 updated(server, updatedServer, "Saved.");
               },
               fault: function(fault) { 
