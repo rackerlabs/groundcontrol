@@ -73,25 +73,26 @@ TestRunner.prototype = {
       for (var attr in suite) {
         if (attr.indexOf("test") == 0) testNames.push(attr);
       }
-      testNames.push("destroy");
-      that._runNextTest(suite, testNames);
-    });
-  },
+      
+      var results = [];
+      for (var i = 0; i < testNames.length; i++) {
+        that._runOneTest(suite, testNames[i], function(successful) {
+          results.push(successful);
+        });
+      }
 
-  // Pop a test name off the given list, find it in the given suite, and
-  // execute it.  When it finishes, recurse.
-  _runNextTest: function(suite, testNames) {
-    if (testNames.length == 0) {
-      if (!this.failedAtLeastOnce)
-        this._resultsTable.css("background", "#88ff00");
-      return;
-    }
-
-    var testName = testNames.shift();
-
-    var that = this;
-    this._runOneTest(suite, testName, function() {
-      that._runNextTest(suite, testNames);
+      // Running all tests in parallel; check each second until
+      // all tests have completed.
+      var waiter = window.setInterval(function() {
+        if (results.length != testNames.length)
+          return;
+        window.clearInterval(waiter);
+        // All succeeded?  Color the tests green.
+        if (results.filter(function(worked) { return !worked; }).length == 0)
+          that._resultsTable.css("background", "#88ff00");
+        // Clean up.  We don't care if it fails.
+        that._runOneTest(suite, "destroy", function() {});
+      }, 1000);
     });
   },
 
@@ -111,7 +112,6 @@ TestRunner.prototype = {
         var msg = successful ? "OK" : "FAILURE: " + failureMessage;
         resultLine.find("td:last-child").text(msg);
         if (!successful) {
-          that.failedAtLeastOnce = true;
           that._resultsTable.css("background", "red");
         }
         callback(successful);
@@ -134,10 +134,7 @@ TestRunner.prototype = {
 
 }
 
-function ExampleTests(log) {
-  this.log = log;
-}
-ExampleTests.prototype = {
+var ExampleTests = {
   init: function(result) {
     result.log("I'm initializing now!");
     result.success();

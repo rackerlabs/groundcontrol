@@ -1,12 +1,3 @@
-function CSAPITests(opts) {
-  this._opts = opts;
-  if (!opts.username) {
-    opts.username = prompt("Enter username for tests");
-  }
-  if (!opts.apiKey) {
-    opts.apiKey = prompt("Enter API key for tests");
-  }
-}
 function ServerTests(username, apiKey) {
   this.username = username;
   this.apiKey = apiKey;
