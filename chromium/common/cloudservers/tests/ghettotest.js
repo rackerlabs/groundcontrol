@@ -49,6 +49,7 @@ function TestRunner(opts) {
   this._resultsTable = $("<table>").
     append("<tr><th>Test</th><th>Result</th></table>").
     css("width", "100%");
+  this._resultsTable.find("th").css("text-align", "left");
   opts.resultsDiv.html(this._resultsTable);
 }
 TestRunner.prototype = {

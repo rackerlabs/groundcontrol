@@ -20,7 +20,7 @@ ServerTests.prototype = {
     result.setTimeout(60000);
     // Make some entities for tests to use
     var that = this;
-    that.service.servers.createList(true, 0, 3).forEachAsync({
+    that.service.servers.createList(true, 0, 8).forEachAsync({
       each: function() { },
       complete: function(entities) {
         that.entities = entities;
@@ -57,9 +57,9 @@ ServerTests.prototype = {
   // Assure that setting the given backup schedule allows us to get the same
   // schedule in return.  Not very interesting unless entity's schedule is
   // different from the one passed to the test.
-  _testSettingABackupSchedule: function(testSchedule, result) {
+  _testSettingABackupSchedule: function(entityNumber, testSchedule, result) {
     var that = this;
-    var entity = this.entities[2];
+    var entity = this.entities[entityNumber];
     that.service.servers.setSchedule({
       entity: entity,
       enabled: testSchedule.enabled,
@@ -86,17 +86,17 @@ ServerTests.prototype = {
 
   testSetBackupSchedule1: function(result) {
     var testSchedule = { enabled: true, weekly: 4, daily: 22 };
-    return this._testSettingABackupSchedule(testSchedule, result);
+    return this._testSettingABackupSchedule(3, testSchedule, result);
   },
 
   testSetBackupSchedule2: function(result) {
     var testSchedule = { enabled: false, weekly: 4 };
-    this._testSettingABackupSchedule(testSchedule, result);
+    this._testSettingABackupSchedule(4, testSchedule, result);
   },
 
   testSetBackupSchedule3: function(result) {
     var testSchedule = { enabled: true, daily: 0};
-    this._testSettingABackupSchedule(testSchedule, result);
+    this._testSettingABackupSchedule(2, testSchedule, result);
   },
 
 } // end ServerTests
