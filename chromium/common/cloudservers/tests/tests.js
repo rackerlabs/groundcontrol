@@ -206,9 +206,9 @@ ServerTests.prototype = {
             entity: event.targetEntity,
             fault: function(fault) { result.failure(fault.message); },
             success: function(updatedServer) {
-              if (updatedServer.status != "ACTIVE") {
+              if (! updatedServer.status in { "UNKNOWN":1, "ACTIVE": 1}) {
                 result.failure("Wrong status: " + updatedServer.status +
-                               " instead of ACTIVE");
+                               " instead of UNKNOWN/ACTIVE");
               }
               else if (updatedServer.flavorId != newFlavorId) {
                 result.failure("Updated server flavorId should be " +
@@ -253,9 +253,9 @@ ServerTests.prototype = {
             entity: event.targetEntity,
             fault: function(fault) { result.failure(fault.message); },
             success: function(updatedServer) {
-              if (updatedServer.status != "ACTIVE") {
+              if (! updatedServer.status in { "UNKNOWN":1, "ACTIVE": 1}) {
                 result.failure("Wrong status: " + updatedServer.status +
-                               " instead of ACTIVE");
+                               " instead of UNKNOWN/ACTIVE");
               }
               else if (updatedServer.flavorId != entity.flavorId) {
                 result.failure("Updated server flavorId should be " +
