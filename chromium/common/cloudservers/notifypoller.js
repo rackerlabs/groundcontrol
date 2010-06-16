@@ -112,6 +112,10 @@ __csapi_client.NotifyPoller.prototype = {
         data.latestKnownEntity = newEntity;
 
         function is_stale(oldEntity) {
+          // TODO temp: because API has a bug which doesn't update
+          // lastModified upon status changes, we're forced to consider
+          // everything as stale.
+          return true;
           var hisTimestamp = oldEntity._lastModified;
           var newTimestamp = data.latestKnownEntity._lastModified;
           return (new Date(hisTimestamp) < new Date(newTimestamp));
