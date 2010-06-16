@@ -193,7 +193,7 @@ ServerTests.prototype = {
           return;
         }
         result.log("Waiting for VERIFY_RESIZE state...");
-        result.setTimeout(120000);
+        result.setTimeout(300000);
         that.service.servers.notify(server, function(event) {
           if (event.error) {
             result.failure("Error talking to server");
@@ -240,7 +240,7 @@ ServerTests.prototype = {
           return;
         }
         result.log("Waiting for VERIFY_RESIZE state...");
-        result.setTimeout(120000);
+        result.setTimeout(300000);
         that.service.servers.notify(server, function(event) {
           if (event.error) {
             result.failure("Error talking to server");
