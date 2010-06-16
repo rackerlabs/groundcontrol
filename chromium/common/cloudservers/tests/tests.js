@@ -3,9 +3,22 @@ function ServerTests(username, apiKey) {
   this.apiKey = apiKey;
 }
 ServerTests.prototype = {
-  init: function(result) {
-    this._createdServers = [];
+  _deleteTestServers: function(result, callback) {
+    result.log("Deleting all existing test servers");
+    var that = this;
+    that.service.servers.createList(true).forEachAsync({
+      fault: function(fault) { result.failure(fault.message); },
+      each: function(entity) { 
+        if (!entity.name.match('^test')) 
+          return;
+        result.log("Deleting " + entity.name);
+        that.service.servers.remove({ entity: entity });
+      },
+      complete: callback
+    });
+  },
 
+  init: function(result) {
     result.setTimeout(5000);
     result.log("Logging in...");
     try {
@@ -18,58 +31,50 @@ ServerTests.prototype = {
     catch (fault) {
       result.failure("Couldn't log in: " + fault.message);
     }
-    result.log("Fetching entities for tests");
-    result.setTimeout(60000);
-    // Make some entities for tests to use
+
     var that = this;
-    that.service.servers.createList(true, 0, 10).forEachAsync({
-      each: function() { },
-      complete: function(entities) {
-        that.entities = entities;
-        result.success();
-      },
-      fault: function(fault) { result.failure(fault.message); }
+    that.entities = [];
+    var SERVERS_NEEDED = 10;
+    result.setTimeout(180000);
+    that._deleteTestServers(result, function() {
+      result.log("Creating " + SERVERS_NEEDED + " new servers for tests");
+
+      result.setTimeout(300000);
+      for (var i=0; i < SERVERS_NEEDED; i++) {
+        that.service.servers.create({
+          entity: { name: "test" + Math.random(), imageId: 10, flavorId: 2 },
+          success: function(entity) {
+
+            that.service.servers.wait({
+              entity: entity,
+              success: function(updatedEntity) {
+
+                that.entities.push(entity);
+                result.log("Created entity " + that.entities.length);
+                if (that.entities.length == SERVERS_NEEDED)
+                  result.success();
+
+              },
+              fault: function(fault) { result.failure(fault.message); }
+            });
+
+          },
+          fault: function(fault) { result.failure(fault.message); }
+        });
+      }
+
     });
   },
 
   testInitialCreate: function(result) {
     var that = this;
     this.service.servers.create({
-      entity: { name: "Temporary Server 1", imageId: 10, flavorId: 2 },
-      success: function(entity) { 
-        that._createdServers.push(entity);
-        result.success();
+      entity: { 
+        name: "testInitialCreate" + Math.random(), imageId: 10, flavorId: 2 
       },
-      fault: function(fault) { result.failure(fault.message); }
-    });
-  },
-
-  testFullCreate: function(result) {
-    var that = this;
-    this.service.servers.create({
-      entity: { name: "Temporary Server 2", imageId: 10, flavorId: 2 },
       success: function(entity) { 
-        result.setTimeout(180000);
-        that.service.servers.wait({
-          entity: entity,
-          success: function(updatedEntity) {
-            if (updatedEntity.status != "ACTIVE") {
-              that._createdServers.push(entity); // for destroy() to clean up
-              that._serverToDelete = -1; // to wake testRemove
-              result.failure("Server status " + updatedEntity.status +
-                             " instead of ACTIVE");
-            }
-            else {
-              that._serverToDelete = entity; // for testRemove to use
-              result.success();
-            }
-          },
-          fault: function(fault) { 
-            that._createdServers.push(entity); // for destroy() to clean up
-            that._serverToDelete = -1; // to wake testRemove
-            result.failure(fault.message); 
-          }
-        });
+        result.success();
+        that.service.servers.remove({entity: entity});
       },
       fault: function(fault) { result.failure(fault.message); }
     });
@@ -274,46 +279,16 @@ ServerTests.prototype = {
   },
 
   testRemove: function(result) {
-    result.setTimeout(180000);
-    result.log("testRemove waiting until a creation is finished...");
-    var that = this;
-    var waiter = window.setInterval(function() {
-      if (that._serverToDelete == undefined)
-        return;
-      window.clearInterval(waiter);
-      if (that._serverToDelete == -1) {
-        result.failure("testFullCreate failed, so I can't run.");
-        return;
-      }
-      result.log("testRemove has an entity to delete; proceeding.");
-      result.setTimeout(30000);
-      that.service.servers.remove({
-        entity: that._serverToDelete,
-        success: function() { result.success(); },
-        fault: function(fault) { result.failure(fault.message); }
-      });
-    }, 5000);
+    this.service.servers.remove({
+      entity: this.entities[9],
+      success: function() { result.success(); },
+      fault: function(fault) { result.failure(fault.message); }
+    });
   },
 
   destroy: function(result) {
-    result.log("Deleting servers created during tests");
-    var that = this;
-    var numLeft = this._createdServers.length;
-    for (var i = 0; i < this._createdServers.length; i++) {
-      that.service.servers.remove({
-        entity: that._createdServers[i],
-        success: function() {
-          numLeft -= 1;
-          if (numLeft != 0) return;
-          result.log("Reverting testResize's work");
-          that.service.servers.revertResize({
-            entity: that.entities[5],
-            fault: function(fault) { result.failure(fault.message); },
-            success: function() { result.success(); }
-          });
-        },
-        failure: function(fault) { result.failure(fault.message); }
-      });
-    }
+    this._deleteTestServers(result, function() {
+      result.success();
+    });
   }
 } // end ServerTests
