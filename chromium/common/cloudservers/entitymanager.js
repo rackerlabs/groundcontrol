@@ -328,7 +328,11 @@ __csapi_client.EntityManager.prototype = {
     this._request({
       path: opts.entity.id,
       beforeSend: function(xhr) {
-        xhr.setRequestHeader("If-Modified-Since", opts.entity._lastModified);
+        // TODO temporarily don't ask if-modified-since, because the API
+        // has a bug.  It doesn't update lastModified on the server when
+        // an entity's status changes, so you get a 304 instead of the
+        // refreshed entity.
+        // xhr.setRequestHeader("If-Modified-Since", opts.entity._lastModified);
       },
       success: function(json, status, xhr) {
         if (xhr.status == 304) { // Not Modified
