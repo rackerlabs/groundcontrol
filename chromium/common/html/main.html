@@ -84,7 +84,9 @@
         $("html").bind("loggedIn", function(event, svc) {
           service = svc; // make it global
           $("#whoami").show().find("#name").text(service._username);
-          $("#container").load("servers.html");
+          $("#container").load("tabs.html", function() {
+            $("#container").tabs({ spinner: "", cache: true });
+          });
         });
 
         $("#whoami #logout").click(function() {
