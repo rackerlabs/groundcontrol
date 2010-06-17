@@ -1,11 +1,11 @@
 <style>
-  #servers {
+  #images {
     width: 720px;
   }
 </style>
 
-<div id="servers">
-  <div id="top"><p>Servers</p></div>
+<div id="images">
+  <div id="top"><p>Images</p></div>
 
   <div id="listdiv">
     <table id="list" cellpadding="0" cellspacing="0">
@@ -73,7 +73,7 @@
     $(function() {
 
       var paginatedTable = new PaginatedTable({
-        table: $("#servers #list"),
+        table: $("#images #list"),
         manager: service.servers,
         createRow: createRow,
         rowClick: fillDetails
@@ -90,8 +90,8 @@
 
       // Hook up event handlers to HTML
 
-      $("#servers .new").click(function() {
-        $("#servers .newform").
+      $("#images .new").click(function() {
+        $("#images .newform").
           find(".image").html(selectBoxForMap(images, "name")).end().
           find(".flavor").html(selectBoxForMap(flavors, "name")).end().
           find(".name").val("").end().
@@ -100,11 +100,11 @@
           find(".cancel").show().attr("disabled", false).end().
           show();
       });
-      $("#servers .newform .close").click(function() {
-        $("#servers .newform").hide();
+      $("#images .newform .close").click(function() {
+        $("#images .newform").hide();
       });
-      $("#servers .newform .save").click(function() {
-        var newform = $("#servers .newform");
+      $("#images .newform .save").click(function() {
+        var newform = $("#images .newform");
 
         function empty(classname, msg) {
           if (newform.find(classname).val())
@@ -148,7 +148,7 @@
 
       });
 
-      var detail = $("#servers #detail");
+      var detail = $("#images #detail");
       detail.find("a.delete").click(function() {
         var server = detail.data("server");
 
@@ -214,7 +214,7 @@
 
       function updated(oldServer, newServer, message) {
         paginatedTable.replaceRowFor(oldServer, newServer);
-        if ($("#servers #detail").data("server") == oldServer)
+        if ($("#images #detail").data("server") == oldServer)
           fillDetails(newServer);
         flash(message);
       }
@@ -235,7 +235,7 @@
       }
 
       function fillDetails(server) {
-        var $details = $("#servers #detail");
+        var $details = $("#images #detail");
 
         if (!server) {
           $details.hide();
@@ -472,7 +472,7 @@
       }
 
       function createRow(server) {
-        var row = $("#servers #listitem tr").
+        var row = $("#images #listitem tr").
           clone().
           find(".name").html(server.name).end().
           find(".status").html(server.status).end().

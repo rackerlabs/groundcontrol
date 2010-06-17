@@ -1,0 +1,90 @@
+#top {
+  margin-top: 20px;
+  margin-left: 20px;
+  height: 39px;
+  background: url("../images/list-header.gif") no-repeat;
+}
+
+#top p {
+  padding-top: 3px;
+  font-size 13px;
+  font-weight: bold;
+  text-align: center;
+}
+
+#listdiv {
+  margin-left: 20px;
+  background: url("../images/list-bg.gif") repeat-y;
+}
+
+#list {
+  margin-left: 6px;
+  padding-bottom: 20px;
+  width: 673px;
+}
+
+#list th {
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 3px;
+  text-align: left;
+}
+
+#list tr:hover {
+  background-color: #d1daed;
+}
+
+#list td {
+  padding: 3px;
+}
+
+#newbutton {
+  padding-right: 26px;
+  text-align: right;
+}
+
+#createcancel {
+  margin-top: 10px;
+  text-align: right;
+}
+
+#bottom {
+  margin-bottom: 20px;
+  margin-left: 20px;
+  height: 43px;
+  background: url("../images/list-footer.gif") no-repeat;
+}
+
+#detail {
+  padding: 10px;
+  width: 400px;
+  border: 3px solid #000;
+  background-color: #f1f1f1;
+}
+
+.newform {
+  margin-left: 15px;
+  width: 330px;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+  padding: 10px;
+}
+
+.newform h3 {
+  margin-bottom: 10px;
+}
+
+.newform p {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.editlink {
+  font-size: small;
+  margin-left: 20px;
+}
+
+.greymessage {
+  font-style: italic;
+  color: grey;
+}
