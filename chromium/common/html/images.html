@@ -1,3 +1,6 @@
+<!-- TODO: This is a copy-and-modify from servers.html.  If we care enough,
+extract the commonality into a common place. -->
+
 <style>
   #images {
     width: 720px;
@@ -12,8 +15,8 @@
       <thead>
         <tr>
           <th>Name</th>
+          <th>Type</th>
           <th>Status</th>
-          <th>Public IP</th>
         </tr>
       </thead>
       <tbody>
@@ -25,11 +28,9 @@
     </div>
 
     <div class="newform" style="display:none">
-      <h3>Create New Server</h3>
-      <p>Name <input class="name"/></p>
-      <p>Image <span class="image"></span></p>
-      <p>Size <span class="flavor"></span></p>
-      <!-- TODO metadata keys & values? -->
+      <h3>Create New Image</h3>
+      <p>Image name <input class="name"/></p>
+      <p>Server <span class="server"></span></p>
 
       <div class="message" style="color: red"></div>
 
@@ -48,9 +49,9 @@
   <div id="listitem" style="display:none">
     <table> <!-- needed to store the <tr> which we actually care about -->
       <tr>
-        <td><a href="#" class="name"></a></td>
+        <td class="name"></a></td>
+        <td class="type"></td>
         <td class="status"></td>
-        <td class="ip"></td>
       </tr>
     </table>
   </div>
@@ -59,14 +60,10 @@
   <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
     <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
-    <div>IP: <span class="ip"></span></div>
-    <div>Image: <span class="image"></span></div>
-    <div>Size: <span class="flavor"></span></div>
+    <div>Type: <span class="type"></span></div>
     <div>Status: <span class="status"></span></div>
-    <div>Backups: <span class="backupschedule"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
-    <div><a href="#" class="reboot">Reboot</a></div>
   </div>
 
   <script>
@@ -74,26 +71,21 @@
 
       var paginatedTable = new PaginatedTable({
         table: $("#images #list"),
-        manager: service.servers,
+        manager: service.images,
         createRow: createRow,
         rowClick: fillDetails
       });
 
-      var images = {};
-      service.images.createList(true).forEachAsync({
-        each: function(e) { images[e.id] = e; }
-      });
-      var flavors = {};
-      service.flavors.createList(true).forEachAsync({
-        each: function(e) { flavors[e.id] = e; }
+      var servers = {};
+      service.servers.createList(true).forEachAsync({
+        each: function(e) { servers[e.id] = e; }
       });
 
       // Hook up event handlers to HTML
 
       $("#images .new").click(function() {
         $("#images .newform").
-          find(".image").html(selectBoxForMap(images, "name")).end().
-          find(".flavor").html(selectBoxForMap(flavors, "name")).end().
+          find(".server").html(selectBoxForMap(servers, "name")).end().
           find(".name").val("").end().
           find(".message").hide().end().
           find(".save").show().attr("disabled", false).end().
@@ -113,8 +105,7 @@
           return true;
         }
 
-        if (empty(".image :selected", "Specify an image.")) return;
-        if (empty(".flavor :selected", "Specify a size.")) return;
+        if (empty(".server :selected", "Specify a server to back up.")) return;
         if (empty(".name", "Specify a name.")) return;
             
         newform.
@@ -122,21 +113,29 @@
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        service.servers.create({
+        service.images.create({
           entity: {
             name: newform.find(".name").val(),
-            imageId: parseInt(newform.find(".image :selected").attr("id")),
-            flavorId: parseInt(newform.find(".flavor :selected").attr("id"))
+            serverId: parseInt(newform.find(".server :selected").attr("id"))
           },
-          success: function(newServer) {
-            paginatedTable.addRowFor(newServer);
+          success: function(newEntity) {
+            paginatedTable.addRowFor(newEntity);
             newform.
               hide().
               find(":text").val("").end().
               find(".save").val("Create").attr("disabled", false).end().
               find(".cancel").attr("disabled", false).end().
               find(".message").hide().end();
-            flash("Created new server '" + newServer.name + "'.");
+            flash("Created new image '" + newEntity.name + "'.");
+            // TODO: this doesn't work properly yet.
+            var notifyCallback = function(event) {
+              if (event.error) return;
+              paginatedTable.replaceRowFor(newEntity, event.targetEntity);
+              newEntity = event.targetEntity;
+              if (event.targetEntity.status == 'ACTIVE')
+                service.images.stopNotify(event.targetEntity, notifyCallback);
+            }
+            service.images.notify(newEntity, notifyCallback);
           },
           fault: function(fault) {
             newform.
@@ -150,7 +149,7 @@
 
       var detail = $("#images #detail");
       detail.find("a.delete").click(function() {
-        var server = detail.data("server");
+        var entity = detail.data("image");
 
         // TODO: inline this if no one else uses it
         function verifyModal(opts) {
@@ -172,10 +171,10 @@
 
         verifyModal({
           yes: function() {
-            service.servers.remove({
-              entity: server,
+            service.images.remove({
+              entity: entity,
               success: function() {
-                paginatedTable.rowFor(server).remove();
+                paginatedTable.rowFor(entity).remove();
                 fillDetails(null);
                 flash("Deleted.");
               },
@@ -185,37 +184,10 @@
         });
       });
 
-      detail.find("a.reboot").click(function() {
-        function doReboot(modal, hard) {
-          modal.text("Rebooting...");
-          modal.dialog("widget").find(":button").attr("disabled", true);
-          var server = detail.data("server");
-          service.servers.reboot({
-            entity: server,
-            hard: hard,
-            success: function(updatedServer) {
-              modal.dialog("close");
-              updated(server, updatedServer, "Reboot begun.");
-            },
-            fault: function(fault) {
-              modal.dialog("close");
-              flashFault(fault);
-            }
-          });
-        }
-        $("<div>What kind of reboot?</div>").dialog({
-          title: "Confirm reboot",
-          buttons: {
-            "Hard": function() { doReboot($(this), true); },
-            "Soft": function() { doReboot($(this), false); },
-          }
-        });
-      });
-
-      function updated(oldServer, newServer, message) {
-        paginatedTable.replaceRowFor(oldServer, newServer);
-        if ($("#images #detail").data("server") == oldServer)
-          fillDetails(newServer);
+      function updated(oldEntity, newEntity, message) {
+        paginatedTable.replaceRowFor(oldEntity, newEntity);
+        if ($("#images #detail").data("image") == oldEntity)
+          fillDetails(newEntity);
         flash(message);
       }
 
@@ -234,258 +206,39 @@
         return result;
       }
 
-      function fillDetails(server) {
+      function fillDetails(entity) {
         var $details = $("#images #detail");
 
-        if (!server) {
+        if (!entity) {
           $details.hide();
           return;
         }
 
         $details.
           show().
-          data("server", server);
+          data("image", entity);
 
-        $details.find(".name").showAndEdit({
-          originalValue: server.name,
-          display: function(value) { 
-            return $("<span>").addClass("namedisplay").text(value);
-          },
-          makeEditUi: function(value) { 
-            return $('<input>').val(value).delay(0).select();
-          },
-          getValue: function($editUi) { return $editUi.val(); },
-          save: function(value, success, failure) {
-            if (!value) {
-              failure("Specify a name.");
-            }
-            else {
-              server.name = value;
-              service.servers.update({ 
-                entity: server, 
-                success: function(newEntity) { 
-                  updated(server, newEntity, "Saved.");
-                  success();
-                },
-                fault: function(fault) { failure(fault.message); }
-              });
-            }
-          }
-        });
-
-        $details.find(".image").showAndEdit({
-          originalValue: server.imageId,
-          display: function(value) { 
-            return (images[value] ? images[value].name : "");
-          },
-          makeEditUi: function(imageIdToSelect) { 
-            return selectBoxForMap(images, "name", imageIdToSelect);
-          },
-          getValue: function($editUi) {
-            return parseInt($editUi.find(":selected").attr("id"));
-          },
-          save: function(value, success, failure) {
-            service.servers.rebuild({ 
-              entity: server,
-              imageId: value,
-              success: function(newEntity) { 
-                updated(server, newEntity, "Rebuild started.");
-                success();
-              },
-              fault: function(fault) { failure(fault.message); }
-            });
-          }
-        });
-
-        $details.find(".flavor").showAndEdit({
-          originalValue: server.flavorId,
-          display: function(value) { 
-            return (flavors[value] ? flavors[value].name : "");
-          },
-          makeEditUi: function(flavorIdToSelect) {
-            return selectBoxForMap(flavors, "name", flavorIdToSelect);
-          },
-          getValue: function($editUi) {
-            return parseInt($editUi.find(":selected").attr("id"));
-          },
-          save: function(value, success, failure) {
-            service.servers.resize({ 
-              entity: server,
-              flavorId: value,
-              success: function(newEntity) { 
-                updated(server, newEntity, "Resize started.");
-                success();
-              },
-              fault: function(fault) { failure(fault.message); }
-            });
-          }
-        });
+        var server = servers[entity.serverId];
+        $details.
+          find(".name").text(entity.name).end().
+          find(".type").text(server ? server.name + " backup" : "OS").end().
+          find(".status").html(entity.status).end();
 
         $details.
-          find(".id").html(server.id).end().
-          find(".ip").html(server.addresses.public[0]).end().
-          find(".status").text(server.status).end();
-
-        if (server.status == "VERIFY_RESIZE") {
-          var controls = $("<span>");
-          var saving = $("<span>").
-            text("Saving...").addClass("greymessage").css("margin-left", 20);
-          var links = $("<span>");
-          controls.html(links);
-
-          function doit(fnName) {
-            controls.html(saving);
-            service.servers[fnName]({
-              entity: server,
-              success: function(updatedServer) {
-                controls.html(links);
-                updated(server, updatedServer, "Saved.");
-              },
-              fault: function(fault) { 
-                controls.html(links);
-                flashFault(fault);
-              }
-            });
-          }
-          var revertLink = $('<a href="#">').
-            addClass("editlink").text("undo resize").
-            click(function() { doit('revertResize'); });
-          var confirmLink = $('<a href="#">').
-            addClass("editlink").text("confirm resize").
-            click(function() { doit('confirmResize'); });
-          links.append(revertLink).append(confirmLink);
-
-          $details.find(".status").append(controls);
-        }
-
-        var $schedNode = $details.find(".backupschedule").html("");
-        $("<span>").text("Loading...").addClass("greymessage").
-          appendTo($schedNode);
-        service.servers.getSchedule({ entity: server,
-          success: function(schedule) {
-            var weekdayName = function(daynumber) {
-              var day = __csapi_client.BackupSchedule.
-                                         dayIntegerToString(daynumber);
-              if (day == "DISABLED")
-                return undefined;
-              return day[0] + day.slice(1).toLowerCase();
-            }
-            $schedNode.showAndEdit({
-              originalValue: schedule,
-              display: function(sched) {
-                var msg = "";
-                if (sched.weekly != undefined) {
-                  var day = weekdayName(sched.weekly);
-                  msg = "every " + day;
-                  if (sched.daily != undefined)
-                    msg += ", and ";
-                }
-                if (sched.daily != undefined)
-                  msg += "daily around " + sched.daily + ":00 GMT";
-                if (msg)
-                  msg = msg[0].toUpperCase() + msg.slice(1);
-                var span = $("<span>").text(msg);
-                if (!sched.enabled || !msg) {
-                  span.addClass("greymessage").append(" (disabled)");
-                }
-                return span;
-              },
-              makeEditUi: function(sched) {
-                var enabled = $("<div>").text("Enabled");
-                $('<input type="checkbox"/>').
-                  attr("checked", sched.enabled).
-                  prependTo(enabled);
-
-                var daylabel = $("<div>").css("text-align", "center");
-                function setDayLabel(daynum) { 
-                  daylabel.text(weekdayName(daynum) || "(none)");
-                }
-                var dayslider = $("<div>").addClass("day slider").
-                  slider({
-                    min: -1, max: 6,
-                    value: (sched.weekly == undefined ? -1 : sched.weekly),
-                    slide: function(e, ui) { setDayLabel(ui.value); }
-                });
-                setDayLabel(sched.weekly);
-                var day = $("<div>").
-                  append('<div style="text-align:center">Weekly on:</div>').
-                  append(dayslider).
-                  append(daylabel);
-
-                var hourlabel = $("<div>").css("text-align", "center");
-                function setHourLabel(hournum) {
-                  if (hournum == -2)
-                    hourlabel.text("(none)");
-                  else
-                    hourlabel.text(hournum + ":00 GMT");
-                }
-                var hourslider = $("<div>").addClass("hour slider").
-                  slider({
-                    min: -2, max: 22, step: 2,
-                    value: (sched.daily == undefined ? -2 : sched.daily),
-                    slide: function(e, ui) { setHourLabel(ui.value); }
-                });
-                setHourLabel(sched.daily == undefined ? -2 : sched.daily);
-                var hour = $("<div>").
-                  append('<div style="text-align:center">Daily around:</div>').
-                  append(hourslider).
-                  append(hourlabel);
-
-                var $uiRow = $("<table><tr></tr></table>").find("tr");
-                $("<td>").append(enabled).appendTo($uiRow);
-                $("<td>").append(day).appendTo($uiRow);
-                $("<td>").append(hour).appendTo($uiRow);
-                $uiRow.find("td").css("align", "center").css("padding", 10);
-                $uiRow.find(".slider").css({
-                  width: 150,
-                  height: 10,
-                  margin: 5
-                });
-                return $uiRow.parent(); // the <table>
-
-              },
-              getValue: function($editUi) {
-                var day = $(".day", $editUi).slider("value");
-                var hour = $(".hour", $editUi).slider("value");
-                return {
-                  enabled: !!$(":checkbox", $editUi).attr("checked"),
-                  weekly: (day == -1 ? undefined : day),
-                  daily: (hour == -2 ? undefined : hour)
-                };
-              },
-              save: function(newSched, success, failure) {
-                service.servers.setSchedule({
-                  entity: server,
-                  enabled: newSched.enabled,
-                  weekly: newSched.weekly,
-                  daily: newSched.daily,
-                  success: function() { 
-                    updated(server, server, "Backup schedule saved.");
-                    success(); 
-                  },
-                  fault: function(fault) { failure(fault.message); }
-                });
-              }
-            });
-          }
-        });
+          find(".id").html(entity.id).end();
       }
 
-      function createRow(server) {
+      function createRow(entity) {
+        var server = servers[entity.serverId];
         var row = $("#images #listitem tr").
           clone().
-          find(".name").html(server.name).end().
-          find(".status").html(server.status).end().
-          find(".ip").html(server.addresses.public[0]).end();
+          find(".name").text(entity.name).end().
+          find(".type").text(server ? server.name + " backup" : "OS").end().
+          find(".status").html(entity.status).end();
         return row;
       }
 
       paginatedTable.loadPage();
-
-      //$("#stubui").load("../groundcontrol.html");
     });
   </script>
-
-  <div id="stubui">
-  </div>
 </div>
