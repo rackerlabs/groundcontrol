@@ -175,7 +175,7 @@ extract the commonality into a common place. -->
         var servernames = entity.servers.map(function(id) { return servers[id].name; });
         $details.
           find(".name").text(entity.name).end().
-          find(".servers").text(servernames.join(", ")).end();
+          find(".servers").text(servernames.join(", ") || "none").end();
 
         $details.
           find(".id").html(entity.id).end();

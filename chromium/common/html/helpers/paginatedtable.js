@@ -7,7 +7,8 @@ function PaginatedTable(opts) {
   that._currentPage = 0;
 
   if (opts.rowClick) {
-    that._table.find("tr:not(.moreRow)").live("click", function() {
+    that._table.find("tr:not(.moreRow)").live("click", function(evt) {
+      evt.preventDefault();
       var theRow = $(this);
       opts.rowClick(theRow.data("entity"));
     });
@@ -21,7 +22,7 @@ function PaginatedTable(opts) {
     append('<span class="loading">Loading...</span>');
   that._more.
     find(".loading").css({"font-style": "italic", color: "grey"}).hide().end().
-    find("a").click(function() { that.loadPage(); }).end();
+    find("a").click(function(evt) { evt.preventDefault(); that.loadPage(); }).end();
 
   that._table.find("tbody").append(this._more);
 }
