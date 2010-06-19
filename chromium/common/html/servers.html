@@ -150,25 +150,7 @@
 
       var detail = $("#servers #detail");
       detail.find("a.delete").click(function() {
-        var server = detail.data("server");
-
-        // TODO: inline this if no one else uses it
-        function verifyModal(opts) {
-          opts.text = opts.text || "Really?";
-          opts.title = opts.title || "Confirm";
-          var yes = opts.yes || function() {};
-          var no = opts.no || function() {};
-          var answer = function(callback) {
-            return function() {
-              $(this).dialog("close");
-              callback();
-            }
-          }
-          $("<div>").text(opts.text).dialog({
-            title: opts.title,
-            buttons: { "Yes": answer(yes), "No": answer(no) },
-          });
-        }
+        var server = detail.data("entity");
 
         verifyModal({
           yes: function() {
@@ -189,7 +171,7 @@
         function doReboot(modal, hard) {
           modal.text("Rebooting...");
           modal.dialog("widget").find(":button").attr("disabled", true);
-          var server = detail.data("server");
+          var server = detail.data("entity");
           service.servers.reboot({
             entity: server,
             hard: hard,
@@ -214,24 +196,9 @@
 
       function updated(oldServer, newServer, message) {
         paginatedTable.replaceRowFor(oldServer, newServer);
-        if ($("#servers #detail").data("server") == oldServer)
+        if ($("#servers #detail").data("entity") == oldServer)
           fillDetails(newServer);
         flash(message);
-      }
-
-      // Return a <select> box with <option>s whose ids are the keys to the
-      // map and whose values are map[key][textAttribute].  The <option> whose
-      // id is selectedKey will be selected.
-      function selectBoxForMap(map, textAttribute, selectedKey) {
-        var result = $("<select>");
-        for (var key in map) {
-          $("<option>").
-            attr("id", key).
-            text(map[key][textAttribute]).
-            attr("selected", (selectedKey == key)).
-            appendTo(result);
-        }
-        return result;
       }
 
       function fillDetails(server) {
@@ -244,7 +211,7 @@
 
         $details.
           show().
-          data("server", server);
+          data("entity", server);
 
         $details.find(".name").showAndEdit({
           originalValue: server.name,

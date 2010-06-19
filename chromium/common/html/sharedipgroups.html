@@ -1,22 +1,21 @@
-<!-- TODO: This is a copy-and-modify from servers.html.  If we care enough,
+<!-- TODO: This is a copy-and-modify from images.html.  If we care enough,
 extract the commonality into a common place. -->
 
 <style>
-  #images {
+  #ipgroups {
     width: 720px;
   }
 </style>
 
-<div id="images">
-  <div id="top"><p>Images</p></div>
+<div id="ipgroups">
+  <div id="top"><p>IP Groups</p></div>
 
   <div id="listdiv">
     <table id="list" cellpadding="0" cellspacing="0">
       <thead>
         <tr>
           <th>Name</th>
-          <th>Type</th>
-          <th>Status</th>
+          <th>Servers in group</th>
         </tr>
       </thead>
       <tbody>
@@ -28,9 +27,10 @@ extract the commonality into a common place. -->
     </div>
 
     <div class="newform" style="display:none">
-      <h3>Create New Image</h3>
-      <p>Image name <input class="name"/></p>
-      <p>Server <span class="server"></span></p>
+      <h3>Create Shared IP Group</h3>
+      <p>IP group name <input class="name"/></p>
+      <p>Create empty <input type="checkbox" /></p>
+      <p class="assign">Assign to server <span class="server"></span></p>
 
       <div class="message" style="color: red"></div>
 
@@ -50,8 +50,7 @@ extract the commonality into a common place. -->
     <table> <!-- needed to store the <tr> which we actually care about -->
       <tr>
         <td class="name"></a></td>
-        <td class="type"></td>
-        <td class="status"></td>
+        <td class="servers"></td>
       </tr>
     </table>
   </div>
@@ -60,8 +59,7 @@ extract the commonality into a common place. -->
   <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
     <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
-    <div>Type: <span class="type"></span></div>
-    <div>Status: <span class="status"></span></div>
+    <div>Servers: <span class="servers"></span></div>
 
     <div><a href="#" class="delete">Delete</a></div>
   </div>
@@ -70,8 +68,8 @@ extract the commonality into a common place. -->
     $(function() {
 
       var paginatedTable = new PaginatedTable({
-        table: $("#images #list"),
-        manager: service.images,
+        table: $("#ipgroups #list"),
+        manager: service.sharedIpGroups,
         createRow: createRow,
         rowClick: fillDetails
       });
@@ -83,20 +81,25 @@ extract the commonality into a common place. -->
 
       // Hook up event handlers to HTML
 
-      $("#images .new").click(function() {
-        $("#images .newform").
-          find(".server").html(selectBoxForMap(servers, "name")).end().
+      $("#ipgroups .new").click(function() {
+        $("#ipgroups .newform").
           find(".name").val("").end().
+          find(":checkbox").attr("checked", null).end().
+          find(".server").html(selectBoxForMap(servers, "name")).end().
+          find(".assign").attr("disabled", true).end().
           find(".message").hide().end().
           find(".save").val("Save").show().attr("disabled", false).end().
           find(".cancel").show().attr("disabled", false).end().
           show();
       });
-      $("#images .newform .close").click(function() {
-        $("#images .newform").hide();
+      $("#ipgroups .newform :checkbox").change(function() {
+        $("#ipgroups .newform .assign").attr("disabled", $(this).is(":checked"));
       });
-      $("#images .newform .save").click(function() {
-        var newform = $("#images .newform");
+      $("#ipgroups .newform .close").click(function() {
+        $("#ipgroups .newform").hide();
+      });
+      $("#ipgroups .newform .save").click(function() {
+        var newform = $("#ipgroups .newform");
 
         function empty(classname, msg) {
           if (newform.find(classname).val())
@@ -105,7 +108,8 @@ extract the commonality into a common place. -->
           return true;
         }
 
-        if (empty(".server :selected", "Specify a server to back up.")) return;
+        if (!newform.find(":checkbox").is(":checked") &&
+            empty(".server :selected", "Specify a server.")) return;
         if (empty(".name", "Specify a name.")) return;
             
         newform.
@@ -113,24 +117,19 @@ extract the commonality into a common place. -->
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        service.images.create({
+        var chkd = newform.find(":checkbox").is(":checked");
+        var serverid = chkd ? undefined : parseInt(newform.find(".server :selected").attr("id"));
+
+        service.sharedIpGroups.create({
           entity: {
             name: newform.find(".name").val(),
-            serverId: parseInt(newform.find(".server :selected").attr("id"))
+            server: serverid
           },
           success: function(newEntity) {
+            newEntity.servers = (serverid ? [ serverid ] : []);
             paginatedTable.addRowFor(newEntity);
             newform.hide();
-            flash("Created new image '" + newEntity.name + "'.");
-            // TODO: this doesn't work properly yet.
-            var notifyCallback = function(event) {
-              if (event.error) return;
-              paginatedTable.replaceRowFor(newEntity, event.targetEntity);
-              newEntity = event.targetEntity;
-              if (event.targetEntity.status == 'ACTIVE')
-                service.images.stopNotify(event.targetEntity, notifyCallback);
-            }
-            service.images.notify(newEntity, notifyCallback);
+            flash("Created new IP group '" + newEntity.name + "'.");
           },
           fault: function(fault) {
             newform.
@@ -142,13 +141,13 @@ extract the commonality into a common place. -->
 
       });
 
-      var detail = $("#images #detail");
+      var detail = $("#ipgroups #detail");
       detail.find("a.delete").click(function() {
         var entity = detail.data("entity");
 
         verifyModal({
           yes: function() {
-            service.images.remove({
+            service.sharedIpGroups.remove({
               entity: entity,
               success: function() {
                 paginatedTable.rowFor(entity).remove();
@@ -161,9 +160,8 @@ extract the commonality into a common place. -->
         });
       });
 
-
       function fillDetails(entity) {
-        var $details = $("#images #detail");
+        var $details = $("#ipgroups #detail");
 
         if (!entity) {
           $details.hide();
@@ -174,23 +172,22 @@ extract the commonality into a common place. -->
           show().
           data("entity", entity);
 
-        var server = servers[entity.serverId];
+        var servernames = entity.servers.map(function(id) { return servers[id].name; });
         $details.
           find(".name").text(entity.name).end().
-          find(".type").text(server ? server.name + " backup" : "OS").end().
-          find(".status").html(entity.status).end();
+          find(".servers").text(servernames.join(", ")).end();
 
         $details.
           find(".id").html(entity.id).end();
       }
 
       function createRow(entity) {
-        var server = servers[entity.serverId];
-        var row = $("#images #listitem tr").
+        entity.servers = entity.servers || [];
+
+        var row = $("#ipgroups #listitem tr").
           clone().
           find(".name").text(entity.name).end().
-          find(".type").text(server ? server.name + " backup" : "OS").end().
-          find(".status").html(entity.status).end();
+          find(".servers").text(entity.servers.length).end();
         return row;
       }
 
