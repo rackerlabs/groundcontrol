@@ -29,6 +29,7 @@
       <p>Name <input class="name"/></p>
       <p>Image <span class="image"></span></p>
       <p>Size <span class="flavor"></span></p>
+      <p>Shared IP Group <span class="ipgroup"></span></p>
       <!-- TODO metadata keys & values? -->
 
       <div class="message" style="color: red"></div>
@@ -62,6 +63,7 @@
     <div>IP: <span class="ip"></span></div>
     <div>Image: <span class="image"></span></div>
     <div>Size: <span class="flavor"></span></div>
+    <div>Shared IP Group: <span class="ipgroup"></span></div>
     <div>Status: <span class="status"></span></div>
     <div>Backups: <span class="backupschedule"></span></div>
 
@@ -87,6 +89,10 @@
       service.flavors.createList(true).forEachAsync({
         each: function(e) { flavors[e.id] = e; }
       });
+      var ipgroups = {};
+      service.sharedIpGroups.createList(true).forEachAsync({
+        each: function(e) { ipgroups[e.id] = e; }
+      });
 
       // Hook up event handlers to HTML
 
@@ -94,6 +100,7 @@
         $("#servers .newform").
           find(".image").html(selectBoxForMap(images, "name")).end().
           find(".flavor").html(selectBoxForMap(flavors, "name")).end().
+          find(".ipgroup").html(selectBoxForMap(ipgroups, "name", undefined, true)).end().
           find(".name").val("").end().
           find(".message").hide().end().
           find(".save").show().attr("disabled", false).end().
@@ -122,11 +129,15 @@
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
+        var ipgroupId = newform.find(".ipgroup :selected").attr("id");
+        if (ipgroupId) ipgroupId = parseInt(ipgroupId);
+
         service.servers.create({
           entity: {
             name: newform.find(".name").val(),
             imageId: parseInt(newform.find(".image :selected").attr("id")),
-            flavorId: parseInt(newform.find(".flavor :selected").attr("id"))
+            flavorId: parseInt(newform.find(".flavor :selected").attr("id")),
+            sharedIpGroupId: ipgroupId
           },
           success: function(newServer) {
             paginatedTable.addRowFor(newServer);
@@ -288,9 +299,11 @@
           }
         });
 
+        var ipgroupname = server.sharedIpGroupId ? ipgroups[server.sharedIpGroupId].name : "none";
         $details.
           find(".id").html(server.id).end().
           find(".ip").html(server.addresses.public[0]).end().
+          find(".ipgroup").html(ipgroupname).end().
           find(".status").text(server.status).end();
 
         if (server.status == "VERIFY_RESIZE") {

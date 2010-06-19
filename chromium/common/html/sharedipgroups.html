@@ -29,8 +29,7 @@ extract the commonality into a common place. -->
     <div class="newform" style="display:none">
       <h3>Create Shared IP Group</h3>
       <p>IP group name <input class="name"/></p>
-      <p>Create empty <input type="checkbox" /></p>
-      <p class="assign">Assign to server <span class="server"></span></p>
+      <p>Assign to server <span class="server"></span></p>
 
       <div class="message" style="color: red"></div>
 
@@ -84,16 +83,11 @@ extract the commonality into a common place. -->
       $("#ipgroups .new").click(function() {
         $("#ipgroups .newform").
           find(".name").val("").end().
-          find(":checkbox").attr("checked", null).end().
-          find(".server").html(selectBoxForMap(servers, "name")).end().
-          find(".assign").attr("disabled", true).end().
+          find(".server").html(selectBoxForMap(servers, "name", undefined, true)).end().
           find(".message").hide().end().
           find(".save").val("Save").show().attr("disabled", false).end().
           find(".cancel").show().attr("disabled", false).end().
           show();
-      });
-      $("#ipgroups .newform :checkbox").change(function() {
-        $("#ipgroups .newform .assign").attr("disabled", $(this).is(":checked"));
       });
       $("#ipgroups .newform .close").click(function() {
         $("#ipgroups .newform").hide();
@@ -108,8 +102,6 @@ extract the commonality into a common place. -->
           return true;
         }
 
-        if (!newform.find(":checkbox").is(":checked") &&
-            empty(".server :selected", "Specify a server.")) return;
         if (empty(".name", "Specify a name.")) return;
             
         newform.
@@ -117,8 +109,8 @@ extract the commonality into a common place. -->
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        var chkd = newform.find(":checkbox").is(":checked");
-        var serverid = chkd ? undefined : parseInt(newform.find(".server :selected").attr("id"));
+        var serverid = newform.find(".server :selected").attr("id");
+        if (serverid) serverid = parseInt(serverid);
 
         service.sharedIpGroups.create({
           entity: {
