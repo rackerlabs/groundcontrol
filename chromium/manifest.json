@@ -1,6 +1,6 @@
 {
   "name": "GroundControl",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "GroundControl for Rackspace Cloud Servers",
   "icons": {
     "128": "common/icons/sun-and-clouds-128.png"
