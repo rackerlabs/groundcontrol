@@ -88,8 +88,8 @@ extract the commonality into a common place. -->
           find(".server").html(selectBoxForMap(servers, "name")).end().
           find(".name").val("").end().
           find(".message").hide().end().
-          find(".save").val("Save").show().attr("disabled", false).end().
-          find(".cancel").show().attr("disabled", false).end().
+          find(".save").val("Create").attr("disabled", false).end().
+          find(".cancel").attr("disabled", false).end().
           show();
       });
       $("#images .newform .close").click(function() {

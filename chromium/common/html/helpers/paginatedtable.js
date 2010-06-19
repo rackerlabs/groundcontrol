@@ -59,6 +59,11 @@ PaginatedTable.prototype = {
   },
 
   addRowFor: function(entity) {
+    if (this.rowFor(entity).length > 0) {
+      this.replaceRowFor(entity, entity);
+      return;
+    }
+
     var newRow = this._createRow(entity).data("entity", entity);
     this._more.before(newRow);
     if (newRow.prev().hasClass("odd"))
@@ -71,7 +76,8 @@ PaginatedTable.prototype = {
   // Return a jQuery ojbect containing the row(s) for the given entity
   rowFor: function(entity) {
     return $("tr", this._table).filter(function() {
-      return $(this).data("entity") == entity;
+      var rowEntity = $(this).data("entity");
+      return (rowEntity && rowEntity.id == entity.id);
     });
   },
 
@@ -79,11 +85,16 @@ PaginatedTable.prototype = {
   replaceRowFor: function(oldEntity, newEntity) {
     var oldRow = this.rowFor(oldEntity);
     var newRow = this._createRow(newEntity).data("entity", newEntity);
+    if (oldRow.prev().hasClass("odd"))
+      newRow.addClass("even");
+    else
+      newRow.addClass("odd");
     newRow.
       hide().
       replaceAll(oldRow).
       fadeIn('fast').
       effect("highlight", {}, 3000);
+    return newRow;
   }
 
 }

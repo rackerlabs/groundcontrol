@@ -85,8 +85,8 @@ extract the commonality into a common place. -->
           find(".name").val("").end().
           find(".server").html(selectBoxForMap(servers, "name", undefined, true)).end().
           find(".message").hide().end().
-          find(".save").val("Save").show().attr("disabled", false).end().
-          find(".cancel").show().attr("disabled", false).end().
+          find(".save").val("Create").attr("disabled", false).end().
+          find(".cancel").attr("disabled", false).end().
           show();
       });
       $("#ipgroups .newform .close").click(function() {
@@ -109,7 +109,7 @@ extract the commonality into a common place. -->
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        var serverid = newform.find(".server :selected").attr("id");
+        var serverid = newform.find(".server :selected").attr("id") || undefined;
         if (serverid) serverid = parseInt(serverid);
 
         service.sharedIpGroups.create({

@@ -103,8 +103,8 @@
           find(".ipgroup").html(selectBoxForMap(ipgroups, "name", undefined, true)).end().
           find(".name").val("").end().
           find(".message").hide().end().
-          find(".save").show().attr("disabled", false).end().
-          find(".cancel").show().attr("disabled", false).end().
+          find(".save").val("Create").attr("disabled", false).end().
+          find(".cancel").attr("disabled", false).end().
           show();
       });
       $("#servers .newform .close").click(function() {
@@ -129,7 +129,7 @@
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        var ipgroupId = newform.find(".ipgroup :selected").attr("id");
+        var ipgroupId = newform.find(".ipgroup :selected").attr("id") || undefined;
         if (ipgroupId) ipgroupId = parseInt(ipgroupId);
 
         service.servers.create({
@@ -141,12 +141,7 @@
           },
           success: function(newServer) {
             paginatedTable.addRowFor(newServer);
-            newform.
-              hide().
-              find(":text").val("").end().
-              find(".save").val("Create").attr("disabled", false).end().
-              find(".cancel").attr("disabled", false).end().
-              find(".message").hide().end();
+            newform.hide();
             flash("Created new server '" + newServer.name + "'.");
           },
           fault: function(fault) {
