@@ -20,16 +20,21 @@
     <script src="tests.js"></script>
     <script>
       $(function() {
-        var ghettotest = new TestRunner({
-          resultsDiv: $("#results"),
-          logDiv: $("#log"),
+
+        $("#startTests").click(function() {
+          $("#startTests").attr("disabled", true);
+          var ghettotest = new TestRunner({
+            resultsDiv: $("#results"),
+            logDiv: $("#log"),
+          });
+          // ghettotest.runTests(ExampleTests);
+          var cred = _get("loginCredentials") || {
+            username: prompt("Enter username for tests"),
+            apiKey: prompt("Enter API Key")
+          };
+          ghettotest.runTests(new ServerTests(cred.username, cred.apiKey));
         });
-        // ghettotest.runTests(ExampleTests);
-        var cred = _get("loginCredentials") || {
-          username: prompt("Enter username for tests"),
-          apiKey: prompt("Enter API Key")
-        };
-        ghettotest.runTests(new ServerTests(cred.username, cred.apiKey));
+
       });
     </script>
     <style>
@@ -43,6 +48,10 @@
     </style>
   </head>
   <body>
+    These unit tests will delete any servers in your account whose names start
+    with "test", and will create 10 servers prefixed with "test" that exist for
+    the duration of the test.<br/>
+    <input type="button" value="Begin tests" id="startTests"/><br/>
     <h2>Results</h2>
     <div id="results"></div>
     <h2>Log</h2>

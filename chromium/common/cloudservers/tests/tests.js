@@ -4,7 +4,7 @@ function ServerTests(username, apiKey) {
 }
 ServerTests.prototype = {
   _deleteTestServers: function(result, callback) {
-    result.log("Deleting all existing test servers");
+    result.log("Deleting all servers named 'test{anything}'");
     var that = this;
     that.service.servers.createList(true).forEachAsync({
       fault: function(fault) { result.failure(fault.message); },
