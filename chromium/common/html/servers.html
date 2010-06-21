@@ -25,8 +25,7 @@
     </div>
 
     <div class="newform" style="display:none">
-      <h3>Create New Server</h3>
-      <p>Name <input class="name"/></p>
+      <p>Server name <input class="name"/></p>
       <p>Image <span class="image"></span></p>
       <p>Size <span class="flavor"></span></p>
       <p>Shared IP Group <span class="ipgroup"></span></p>
@@ -73,6 +72,11 @@
   <script>
     $(function() {
 
+      var newForm = $("#servers .newform");
+      newForm.dialog({
+        autoOpen: false, modal: true, width: 350, title: "New Server"
+      });
+
       $("#serverdetail").dialog({autoOpen: false, modal: true, width:600});
 
       var paginatedTable = new PaginatedTable({
@@ -98,7 +102,7 @@
       // Hook up event handlers to HTML
 
       $("#servers .new").click(function() {
-        $("#servers .newform").
+        newForm.
           find(".image").html(selectBoxForMap(images, "name")).end().
           find(".flavor").html(selectBoxForMap(flavors, "name")).end().
           find(".ipgroup").html(selectBoxForMap(ipgroups, "name", undefined, true)).end().
@@ -106,18 +110,16 @@
           find(".message").hide().end().
           find(".save").val("Create").attr("disabled", false).end().
           find(".cancel").attr("disabled", false).end().
-          show();
+          dialog('open');
       });
-      $("#servers .newform .close").click(function() {
-        $("#servers .newform").hide();
+      $(".close", newForm).click(function() {
+        newForm.dialog('close');
       });
-      $("#servers .newform .save").click(function() {
-        var newform = $("#servers .newform");
-
+      $(".save", newForm).click(function() {
         function empty(classname, msg) {
-          if (newform.find(classname).val())
+          if (newForm.find(classname).val())
             return false;
-          newform.find(".message").text(msg).show();
+          newForm.find(".message").text(msg).show();
           return true;
         }
 
@@ -125,28 +127,28 @@
         if (empty(".flavor :selected", "Specify a size.")) return;
         if (empty(".name", "Specify a name.")) return;
             
-        newform.
+        newForm.
           find(".save").val("Saving...").attr("disabled", true).end().
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        var ipgroupId = newform.find(".ipgroup :selected").attr("id") || undefined;
+        var ipgroupId = newForm.find(".ipgroup :selected").attr("id") || undefined;
         if (ipgroupId) ipgroupId = parseInt(ipgroupId);
 
         service.servers.create({
           entity: {
-            name: newform.find(".name").val(),
-            imageId: parseInt(newform.find(".image :selected").attr("id")),
-            flavorId: parseInt(newform.find(".flavor :selected").attr("id")),
+            name: newForm.find(".name").val(),
+            imageId: parseInt(newForm.find(".image :selected").attr("id")),
+            flavorId: parseInt(newForm.find(".flavor :selected").attr("id")),
             sharedIpGroupId: ipgroupId
           },
           success: function(newServer) {
             paginatedTable.addRowFor(newServer);
-            newform.hide();
+            newForm.dialog('close');
             flash("Created new server '" + newServer.name + "'.");
           },
           fault: function(fault) {
-            newform.
+            newForm.
               find(".save").val("Create").attr("disabled", false).end().
               find(".cancel").attr("disabled", false).end().
               find(".message").show().text(fault.message);

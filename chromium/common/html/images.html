@@ -28,7 +28,6 @@ extract the commonality into a common place. -->
     </div>
 
     <div class="newform" style="display:none">
-      <h3>Create New Image</h3>
       <p>Image name <input class="name"/></p>
       <p>Server <span class="server"></span></p>
 
@@ -67,6 +66,9 @@ extract the commonality into a common place. -->
   <script>
     $(function() {
 
+      var newForm = $("#images .newform");
+      newForm.dialog({autoOpen: false, modal: true, title: "New Image"});
+
       $("#imagedetail").dialog({autoOpen: false, modal: true});
 
       var paginatedTable = new PaginatedTable({
@@ -84,43 +86,41 @@ extract the commonality into a common place. -->
       // Hook up event handlers to HTML
 
       $("#images .new").click(function() {
-        $("#images .newform").
+        newForm.
           find(".server").html(selectBoxForMap(servers, "name")).end().
           find(".name").val("").end().
           find(".message").hide().end().
           find(".save").val("Create").attr("disabled", false).end().
           find(".cancel").attr("disabled", false).end().
-          show();
+          dialog('open');
       });
-      $("#images .newform .close").click(function() {
-        $("#images .newform").hide();
+      $(".close", newForm).click(function() {
+        newForm.dialog('close');
       });
-      $("#images .newform .save").click(function() {
-        var newform = $("#images .newform");
-
+      $(".save", newForm).click(function() {
         function empty(classname, msg) {
-          if (newform.find(classname).val())
+          if (newForm.find(classname).val())
             return false;
-          newform.find(".message").text(msg).show();
+          newForm.find(".message").text(msg).show();
           return true;
         }
 
         if (empty(".server :selected", "Specify a server to back up.")) return;
         if (empty(".name", "Specify a name.")) return;
             
-        newform.
+        newForm.
           find(".save").val("Saving...").attr("disabled", true).end().
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
         service.images.create({
           entity: {
-            name: newform.find(".name").val(),
-            serverId: parseInt(newform.find(".server :selected").attr("id"))
+            name: newForm.find(".name").val(),
+            serverId: parseInt(newForm.find(".server :selected").attr("id"))
           },
           success: function(newEntity) {
             paginatedTable.addRowFor(newEntity);
-            newform.hide();
+            newForm.dialog('close');
             flash("Created new image '" + newEntity.name + "'.");
             // TODO: this doesn't work properly yet.
             var notifyCallback = function(event) {
@@ -133,7 +133,7 @@ extract the commonality into a common place. -->
             service.images.notify(newEntity, notifyCallback);
           },
           fault: function(fault) {
-            newform.
+            newForm.
               find(".save").val("Create").attr("disabled", false).end().
               find(".cancel").attr("disabled", false).end().
               find(".message").show().text(fault.message);

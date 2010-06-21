@@ -27,7 +27,6 @@ extract the commonality into a common place. -->
     </div>
 
     <div class="newform" style="display:none">
-      <h3>Create Shared IP Group</h3>
       <p>IP group name <input class="name"/></p>
       <p>Assign to server <span class="server"></span></p>
 
@@ -64,6 +63,9 @@ extract the commonality into a common place. -->
   <script>
     $(function() {
 
+      var newForm = $("#ipgroups .newform");
+      newForm.dialog({autoOpen: false, modal: true, title: "New IP Group"});
+
       $("#ipgroupdetail").dialog({autoOpen: false, modal: true});
 
       var paginatedTable = new PaginatedTable({
@@ -81,50 +83,48 @@ extract the commonality into a common place. -->
       // Hook up event handlers to HTML
 
       $("#ipgroups .new").click(function() {
-        $("#ipgroups .newform").
+        newForm.
           find(".name").val("").end().
           find(".server").html(selectBoxForMap(servers, "name", undefined, true)).end().
           find(".message").hide().end().
           find(".save").val("Create").attr("disabled", false).end().
           find(".cancel").attr("disabled", false).end().
-          show();
+          dialog('open');
       });
-      $("#ipgroups .newform .close").click(function() {
-        $("#ipgroups .newform").hide();
+      $(".close", newForm).click(function() {
+        newForm.dialog('close');
       });
-      $("#ipgroups .newform .save").click(function() {
-        var newform = $("#ipgroups .newform");
-
+      $(".save", newForm).click(function() {
         function empty(classname, msg) {
-          if (newform.find(classname).val())
+          if (newForm.find(classname).val())
             return false;
-          newform.find(".message").text(msg).show();
+          newForm.find(".message").text(msg).show();
           return true;
         }
 
         if (empty(".name", "Specify a name.")) return;
             
-        newform.
+        newForm.
           find(".save").val("Saving...").attr("disabled", true).end().
           find(".message").hide().end().
           find(".cancel").attr("disabled", true).end();
 
-        var serverid = newform.find(".server :selected").attr("id") || undefined;
+        var serverid = newForm.find(".server :selected").attr("id") || undefined;
         if (serverid) serverid = parseInt(serverid);
 
         service.sharedIpGroups.create({
           entity: {
-            name: newform.find(".name").val(),
+            name: newForm.find(".name").val(),
             server: serverid
           },
           success: function(newEntity) {
             newEntity.servers = (serverid ? [ serverid ] : []);
             paginatedTable.addRowFor(newEntity);
-            newform.hide();
+            newForm.dialog('close');
             flash("Created new IP group '" + newEntity.name + "'.");
           },
           fault: function(fault) {
-            newform.
+            newForm.
               find(".save").val("Create").attr("disabled", false).end().
               find(".cancel").attr("disabled", false).end().
               find(".message").show().text(fault.message);
