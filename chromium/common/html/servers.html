@@ -56,7 +56,7 @@
     </table>
   </div>
 
-  <div id="detail" style="display:none">
+  <div id="serverdetail" style="display:none">
   <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
     <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
@@ -74,11 +74,13 @@
   <script>
     $(function() {
 
+      $("#serverdetail").dialog({autoOpen: false, modal: true, width:600});
+
       var paginatedTable = new PaginatedTable({
         table: $("#servers #list"),
         manager: service.servers,
         createRow: createRow,
-        rowClick: fillDetails
+        rowClick: showDetails
       });
 
       var images = {};
@@ -154,7 +156,7 @@
 
       });
 
-      var detail = $("#servers #detail");
+      var detail = $("#serverdetail");
       detail.find("a.delete").click(function() {
         var server = detail.data("entity");
 
@@ -164,7 +166,7 @@
               entity: server,
               success: function() {
                 paginatedTable.rowFor(server).remove();
-                fillDetails(null);
+                $("#serverdetail").dialog('close');
                 flash("Deleted.");
               },
               fault: flashFault
@@ -202,25 +204,22 @@
 
       function updated(oldServer, newServer, message) {
         paginatedTable.replaceRowFor(oldServer, newServer);
-        if ($("#servers #detail").data("entity") == oldServer)
-          fillDetails(newServer);
+        if ($("#serverdetail").dialog('isOpen') && 
+            $("#serverdetail").data("entity") == oldServer)
+          showDetails(newServer);
         flash(message);
       }
 
-      function fillDetails(server) {
-        var $details = $("#servers #detail");
+      function showDetails(entity) {
+        var $details = $("#serverdetail");
 
-        if (!server) {
-          $details.hide();
+        if (!entity) {
+          $details.dialog('close');
           return;
         }
 
-        $details.
-          show().
-          data("entity", server);
-
         $details.find(".name").showAndEdit({
-          originalValue: server.name,
+          originalValue: "Name: " + entity.name,
           display: function(value) { 
             return $("<span>").addClass("namedisplay").text(value);
           },
@@ -233,11 +232,11 @@
               failure("Specify a name.");
             }
             else {
-              server.name = value;
-              service.servers.update({ 
-                entity: server, 
+              entity.name = value;
+              service.entity.update({ 
+                entity: entity, 
                 success: function(newEntity) { 
-                  updated(server, newEntity, "Saved.");
+                  updated(entity, newEntity, "Saved.");
                   success();
                 },
                 fault: function(fault) { failure(fault.message); }
@@ -247,7 +246,7 @@
         });
 
         $details.find(".image").showAndEdit({
-          originalValue: server.imageId,
+          originalValue: entity.imageId,
           display: function(value) { 
             return (images[value] ? images[value].name : "");
           },
@@ -259,10 +258,10 @@
           },
           save: function(value, success, failure) {
             service.servers.rebuild({ 
-              entity: server,
+              entity: entity,
               imageId: value,
               success: function(newEntity) { 
-                updated(server, newEntity, "Rebuild started.");
+                updated(entity, newEntity, "Rebuild started.");
                 success();
               },
               fault: function(fault) { failure(fault.message); }
@@ -271,7 +270,7 @@
         });
 
         $details.find(".flavor").showAndEdit({
-          originalValue: server.flavorId,
+          originalValue: entity.flavorId,
           display: function(value) { 
             return (flavors[value] ? flavors[value].name : "");
           },
@@ -283,10 +282,10 @@
           },
           save: function(value, success, failure) {
             service.servers.resize({ 
-              entity: server,
+              entity: entity,
               flavorId: value,
               success: function(newEntity) { 
-                updated(server, newEntity, "Resize started.");
+                updated(entity, newEntity, "Resize started.");
                 success();
               },
               fault: function(fault) { failure(fault.message); }
@@ -294,14 +293,14 @@
           }
         });
 
-        var ipgroupname = server.sharedIpGroupId ? ipgroups[server.sharedIpGroupId].name : "none";
+        var ipgroupname = entity.sharedIpGroupId ? ipgroups[entity.sharedIpGroupId].name : "none";
         $details.
-          find(".id").html(server.id).end().
-          find(".ip").html(server.addresses.public[0]).end().
+          find(".id").html(entity.id).end().
+          find(".ip").html(entity.addresses.public[0]).end().
           find(".ipgroup").html(ipgroupname).end().
-          find(".status").text(server.status).end();
+          find(".status").text(entity.status).end();
 
-        if (server.status == "VERIFY_RESIZE") {
+        if (entity.status == "VERIFY_RESIZE") {
           var controls = $("<span>");
           var saving = $("<span>").
             text("Saving...").addClass("greymessage").css("margin-left", 20);
@@ -311,10 +310,10 @@
           function doit(fnName) {
             controls.html(saving);
             service.servers[fnName]({
-              entity: server,
+              entity: entity,
               success: function(updatedServer) {
                 controls.html(links);
-                updated(server, updatedServer, "Saved.");
+                updated(entity, updatedServer, "Saved.");
               },
               fault: function(fault) { 
                 controls.html(links);
@@ -336,7 +335,7 @@
         var $schedNode = $details.find(".backupschedule").html("");
         $("<span>").text("Loading...").addClass("greymessage").
           appendTo($schedNode);
-        service.servers.getSchedule({ entity: server,
+        service.servers.getSchedule({ entity: entity,
           success: function(schedule) {
             var weekdayName = function(daynumber) {
               var day = __csapi_client.BackupSchedule.
@@ -430,12 +429,12 @@
               },
               save: function(newSched, success, failure) {
                 service.servers.setSchedule({
-                  entity: server,
+                  entity: entity,
                   enabled: newSched.enabled,
                   weekly: newSched.weekly,
                   daily: newSched.daily,
                   success: function() { 
-                    updated(server, server, "Backup schedule saved.");
+                    updated(entity, entity, "Backup schedule saved.");
                     success(); 
                   },
                   fault: function(fault) { failure(fault.message); }
@@ -444,14 +443,19 @@
             });
           }
         });
+
+        $details.
+          dialog('option', 'title', entity.name).
+          dialog('open').
+          data("entity", entity);
       }
 
-      function createRow(server) {
+      function createRow(entity) {
         var row = $("#servers #listitem tr").
           clone().
-          find(".name").html(server.name).end().
-          find(".status").html(server.status).end().
-          find(".ip").html(server.addresses.public[0]).end();
+          find(".name").html(entity.name).end().
+          find(".status").html(entity.status).end().
+          find(".ip").html(entity.addresses.public[0]).end();
         return row;
       }
 

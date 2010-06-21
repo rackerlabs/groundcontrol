@@ -56,9 +56,8 @@ extract the commonality into a common place. -->
     </table>
   </div>
 
-  <div id="detail" style="display:none">
+  <div id="imagedetail" style="display:none">
   <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
-    <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
     <div>Type: <span class="type"></span></div>
     <div>Status: <span class="status"></span></div>
@@ -69,11 +68,13 @@ extract the commonality into a common place. -->
   <script>
     $(function() {
 
+      $("#imagedetail").dialog({autoOpen: false, modal: true});
+
       var paginatedTable = new PaginatedTable({
         table: $("#images #list"),
         manager: service.images,
         createRow: createRow,
-        rowClick: fillDetails
+        rowClick: showDetails
       });
 
       var servers = {};
@@ -142,7 +143,7 @@ extract the commonality into a common place. -->
 
       });
 
-      var detail = $("#images #detail");
+      var detail = $("#imagedetail");
       detail.find("a.delete").click(function() {
         var entity = detail.data("entity");
 
@@ -152,7 +153,7 @@ extract the commonality into a common place. -->
               entity: entity,
               success: function() {
                 paginatedTable.rowFor(entity).remove();
-                fillDetails(null);
+                $("#imagedetail").dialog('close');
                 flash("Deleted.");
               },
               fault: flashFault
@@ -162,26 +163,26 @@ extract the commonality into a common place. -->
       });
 
 
-      function fillDetails(entity) {
-        var $details = $("#images #detail");
+      function showDetails(entity) {
+        var $details = $("#imagedetail");
 
         if (!entity) {
-          $details.hide();
+          $details.dialog('close');
           return;
         }
 
-        $details.
-          show().
-          data("entity", entity);
-
         var server = servers[entity.serverId];
         $details.
-          find(".name").text(entity.name).end().
           find(".type").text(server ? server.name + " backup" : "OS").end().
           find(".status").html(entity.status).end();
 
         $details.
           find(".id").html(entity.id).end();
+
+        $details.
+          dialog('option', 'title', entity.name).
+          dialog('open').
+          data("entity", entity);
       }
 
       function createRow(entity) {

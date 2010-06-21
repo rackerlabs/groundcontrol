@@ -54,9 +54,8 @@ extract the commonality into a common place. -->
     </table>
   </div>
 
-  <div id="detail" style="display:none">
+  <div id="ipgroupdetail" style="display:none">
   <!-- Have JavaScript turn this into a popup/overlay using the jQuery Lightbox plugin? -->
-    <div><span class="name"></span></div>
     <div>ID: <span class="id"></span></div>
     <div>Servers: <span class="servers"></span></div>
 
@@ -66,11 +65,13 @@ extract the commonality into a common place. -->
   <script>
     $(function() {
 
+      $("#ipgroupdetail").dialog({autoOpen: false, modal: true});
+
       var paginatedTable = new PaginatedTable({
         table: $("#ipgroups #list"),
         manager: service.sharedIpGroups,
         createRow: createRow,
-        rowClick: fillDetails
+        rowClick: showDetails
       });
 
       var servers = {};
@@ -133,7 +134,7 @@ extract the commonality into a common place. -->
 
       });
 
-      var detail = $("#ipgroups #detail");
+      var detail = $("#ipgroupdetail");
       detail.find("a.delete").click(function() {
         var entity = detail.data("entity");
 
@@ -143,7 +144,7 @@ extract the commonality into a common place. -->
               entity: entity,
               success: function() {
                 paginatedTable.rowFor(entity).remove();
-                fillDetails(null);
+                $("#ipgroupdetail").dialog('close');
                 flash("Deleted.");
               },
               fault: flashFault
@@ -152,25 +153,26 @@ extract the commonality into a common place. -->
         });
       });
 
-      function fillDetails(entity) {
-        var $details = $("#ipgroups #detail");
+      function showDetails(entity) {
+        var $details = $("#ipgroupdetail");
 
         if (!entity) {
-          $details.hide();
+          $details.dialog('close');
           return;
         }
 
-        $details.
-          show().
-          data("entity", entity);
-
         var servernames = entity.servers.map(function(id) { return servers[id].name; });
         $details.
-          find(".name").text(entity.name).end().
           find(".servers").text(servernames.join(", ") || "none").end();
 
         $details.
           find(".id").html(entity.id).end();
+
+        $details.
+          dialog('option', 'title', entity.name).
+          dialog('open').
+          data("entity", entity);
+
       }
 
       function createRow(entity) {
