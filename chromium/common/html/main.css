@@ -1,26 +1,10 @@
-#top {
-  margin-top: 20px;
-  margin-left: 20px;
-  height: 39px;
-  background: url("../images/list-header.gif") no-repeat;
-}
-
-#top p {
-  padding-top: 3px;
-  font-size 13px;
-  font-weight: bold;
-  text-align: center;
-}
-
-#listdiv {
-  margin-left: 20px;
-  background: url("../images/list-bg.gif") repeat-y;
+#container {
+  width: 735px;
 }
 
 #list {
-  margin-left: 6px;
   padding-bottom: 20px;
-  width: 673px;
+  width: 700px;
 }
 
 #list th {
@@ -38,21 +22,9 @@
   padding: 3px;
 }
 
-#newbutton {
-  padding-right: 26px;
-  text-align: right;
-}
-
 #createcancel {
   margin-top: 10px;
   text-align: right;
-}
-
-#bottom {
-  margin-bottom: 20px;
-  margin-left: 20px;
-  height: 43px;
-  background: url("../images/list-footer.gif") no-repeat;
 }
 
 .newform {
