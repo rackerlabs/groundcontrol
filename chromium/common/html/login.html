@@ -8,6 +8,7 @@
     }
     $('#credentials [name="username"]').val(credentials.username);
     $('#credentials [name="apiKey"]').val(credentials.apiKey);
+    $('#credentials [name="authUrl"]').val(credentials.authUrl);
     var cb = $("#credentials :checkbox");
     cb.attr("checked", credentials.rememberMe ? "checked" : null);
 
@@ -27,7 +28,8 @@
       try {
         var service = new client.ComputeService({
           username: credentials.username,
-          apiKey: credentials.apiKey
+          apiKey: credentials.apiKey,
+          authUrl: credentials.authUrl
         });
       }
       catch (fault) {
@@ -65,8 +67,18 @@
         $("#loginpage #msg").show().text("Enter your API key.");
         return;
       }
+      var authUrl = $('#loginpage #credentials [name="authUrl"]').val();
+      if (!authUrl) {
+        $("#loginpage #msg").show().text(
+            "Enter the OpenStack Compute Auth endpoint URL.");
+        return;
+      }
       var rememberMe = $("#loginpage :checkbox:checked").length > 0;
-      login({username:username, apiKey:apiKey, rememberMe:rememberMe});
+      login({
+        username:username, 
+        apiKey:apiKey, 
+        authUrl: authUrl,
+        rememberMe:rememberMe});
     });
 
     autofillLogin();
@@ -78,6 +90,7 @@
     <div id="credentials" class="box">
       Username: <input name="username"/><br/>
       API Key: <input name="apiKey"/><br/>
+      OpenStack Auth URL: <input name="authUrl"/><br/>
       <div id="msg" class="error"></div>
       <input type="checkbox"> Remember me<br/>
       <input type="button" value="Log in"/>

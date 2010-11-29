@@ -37,12 +37,14 @@ __compute_client = org.openstack.compute.api.client;
  * opts:object contains
  *   username:string OpenStack user
  *   apiKey:string
+ *   authUrl:string OpenStack Compute Auth endpoint (e.g.
+ *       https://example.org/openstack-compute/auth)
  *   settings?:Settings to override any default settings
  * 
  * Throws an UnauthorizedFault if credentials are invalid.
  */
 __compute_client.ComputeService = function(opts) {
-  this._authUrl = "https://auth.api.rackspacecloud.com/v1.0";
+  this._authUrl = opts.authUrl;
   this._username = opts.username;
   // TODO: if opts.settings.proxy, use it
   this._apiKey = opts.apiKey;
@@ -78,11 +80,8 @@ __compute_client.ComputeService.prototype = {
       },
       success: function(data, response, xhr) {
         that._authToken = xhr.getResponseHeader("X-Auth-Token");
-        // Per the binding document -- really
-        var wrongUrl = xhr.getResponseHeader("X-Server-Management-Url");
-        var accountID = wrongUrl.match(/\/([^\/]+)(\/?)$/)[1];
-        var right = "https://servers.api.rackspacecloud.com/v1.0/" + accountID;
-        that._serverManagementUrl = right;
+        var url = xhr.getResponseHeader("X-Server-Management-Url");
+        that._serverManagementUrl = url;
       },
       error: function(xhr) {
         if (_attempt < MAX_ATTEMPTS) {
