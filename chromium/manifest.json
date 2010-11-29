@@ -1,7 +1,7 @@
 {
   "name": "GroundControl",
   "version": "1.0.0",
-  "description": "GroundControl for Rackspace Cloud Servers",
+  "description": "GroundControl for OpenStack Compute",
   "icons": {
     "128": "common/icons/sun-and-clouds-128.png"
   },

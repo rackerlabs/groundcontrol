@@ -1,7 +1,7 @@
 GROUNDCONTROL   for Firefox and Chromium
 ========================================
 
-  Providing management of a Rackspace Cloud Servers account.
+  Providing management of an OpenStack Compute account.
 
 
 TO INSTALL FOR TESTING
@@ -40,5 +40,5 @@ ROADMAP
   * Non-sucky UI
   * i18n
   * l10n
-  * Proxy support in Javascript binding to Cloud Servers API
+  * Proxy support in Javascript binding to OpenStack API
   * Split Javascript binding into its own project

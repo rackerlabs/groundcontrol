@@ -32,10 +32,10 @@ __compute_client = org.openstack.compute.api.client;
 
 /**
  * Creates a new ComputeService after synchronously authenticating 
- * against the Cloud Servers API.
+ * against the OpenStack API.
  *
  * opts:object contains
- *   username:string Rackspace Cloud Servers user
+ *   username:string OpenStack user
  *   apiKey:string
  *   settings?:Settings to override any default settings
  * 

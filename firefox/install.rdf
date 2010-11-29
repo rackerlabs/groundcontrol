@@ -20,7 +20,7 @@
    
     <!-- Front End MetaData -->
     <em:name>groundcontrol</em:name>
-    <em:description>GroundControl for Rackspace Cloud Servers</em:description>
+    <em:description>GroundControl for OpenStack Compute</em:description>
     <em:creator>Michael Gundlach</em:creator>
     <em:homepageURL>http://groundcontrol.rackspacecloud.com/</em:homepageURL>
   </Description>      
