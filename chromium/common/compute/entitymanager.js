@@ -34,9 +34,9 @@
 // notify interested parties.
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 /**
  * Base EntityManager class.  Subclasses must implement _dataForUpdate(),
@@ -46,10 +46,10 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * apiRoot:string is the suffix to append to the service's management URL
  *   to control the particular type of entity, e.g. "/servers".
  */
-__csapi_client.EntityManager = function(service, apiRoot) {
+__compute_client.EntityManager = function(service, apiRoot) {
   this._service = service;
   this._url = service._serverManagementUrl + apiRoot;
-  this._notifyPoller = new __csapi_client.NotifyPoller(this);
+  this._notifyPoller = new __compute_client.NotifyPoller(this);
 }
 
 /**
@@ -61,7 +61,7 @@ __csapi_client.EntityManager = function(service, apiRoot) {
  *   details?:string
  *   retryAfter?:Date time after which to retry a rate-limited request
  */
-__csapi_client.EntityManager._parseFault = function(xhr) {
+__compute_client.EntityManager._parseFault = function(xhr) {
   var text = xhr.responseText || '{ "dunno": { "message": "Unknown fault" } }';
   var json = $.parseJSON(text);
   for (var faultname in json) { // grab the only object within json
@@ -85,7 +85,7 @@ __csapi_client.EntityManager._parseFault = function(xhr) {
   return fault;
 },
 
-__csapi_client.EntityManager.prototype = {
+__compute_client.EntityManager.prototype = {
   __proto__: undefined,
 
   /**
@@ -175,7 +175,7 @@ __csapi_client.EntityManager.prototype = {
         // Rate limited --> wait, then try again - several times
         if (xhr.status == 413) {
           log("413; retrying in a bit.");
-          var faultData = __csapi_client.EntityManager._parseFault(xhr);
+          var faultData = __compute_client.EntityManager._parseFault(xhr);
           if (_retryData.rateLimitedTimes > 5) { // give up
             opts.fault(faultData);
           } else {
@@ -196,7 +196,7 @@ __csapi_client.EntityManager.prototype = {
           }
           return;
         }
-        opts.fault(__csapi_client.EntityManager._parseFault(xhr));
+        opts.fault(__compute_client.EntityManager._parseFault(xhr));
       }
     });
   },
@@ -492,7 +492,7 @@ __csapi_client.EntityManager.prototype = {
    *     no limit.
    */
   createDeltaList: function(detailed, changes_since, offset, limit) {
-    return new __csapi_client.EntityList(this, {
+    return new __compute_client.EntityList(this, {
       detailed:detailed,
       changes_since:changes_since,
       offset:offset,

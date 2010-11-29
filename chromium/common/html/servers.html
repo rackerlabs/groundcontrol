@@ -325,7 +325,7 @@
         service.servers.getSchedule({ entity: entity,
           success: function(schedule) {
             var weekdayName = function(daynumber) {
-              var day = __csapi_client.BackupSchedule.
+              var day = __compute_client.BackupSchedule.
                                          dayIntegerToString(daynumber);
               if (day == "DISABLED")
                 return undefined;

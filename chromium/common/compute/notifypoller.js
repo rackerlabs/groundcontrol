@@ -20,17 +20,17 @@
 */
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 // Class handling polling the server for changes to objects, and notifying
 // listeners.
 
-__csapi_client.NotifyPoller = function(entityManager) {
+__compute_client.NotifyPoller = function(entityManager) {
   this._entityManager = entityManager;
 }
-__csapi_client.NotifyPoller.prototype = {
+__compute_client.NotifyPoller.prototype = {
   __proto__: undefined,
 
   _pollIntervalMs: 10000, // TODO set this reasonably somehow

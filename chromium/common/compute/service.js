@@ -26,9 +26,9 @@
 // Built according to the Cloud Servers Language Binding Guide, rev 09/16/09.
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 /**
  * Creates a new ComputeService after synchronously authenticating 
@@ -41,7 +41,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * 
  * Throws an UnauthorizedFault if credentials are invalid.
  */
-__csapi_client.ComputeService = function(opts) {
+__compute_client.ComputeService = function(opts) {
   this._authUrl = "https://auth.api.rackspacecloud.com/v1.0";
   this._username = opts.username;
   // TODO: if opts.settings.proxy, use it
@@ -55,7 +55,7 @@ __csapi_client.ComputeService = function(opts) {
   this.flavors = this.createFlavorManager();
   this.sharedIpGroups = this.createSharedIpGroupManager();
 }
-__csapi_client.ComputeService.prototype = {
+__compute_client.ComputeService.prototype = {
 
   /**
    * Synchronously authenticates using this's credentials.  Upon success,
@@ -106,18 +106,18 @@ __csapi_client.ComputeService.prototype = {
   // TODO: implement this.serviceInfo to query Version, Limits, and Settings.
 
   createServerManager: function() {
-    return new __csapi_client.ServerManager(this);
+    return new __compute_client.ServerManager(this);
   },
 
   createImageManager: function() {
-    return new __csapi_client.ImageManager(this);
+    return new __compute_client.ImageManager(this);
   },
 
   createSharedIpGroupManager: function() {
-    return new __csapi_client.SharedIpGroupManager(this);
+    return new __compute_client.SharedIpGroupManager(this);
   },
 
   createFlavorManager: function() {
-    return new __csapi_client.FlavorManager(this);
+    return new __compute_client.FlavorManager(this);
   },
 }

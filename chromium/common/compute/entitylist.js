@@ -20,9 +20,9 @@
 */
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 /**
  * A list of entities that can be iterated.
@@ -41,14 +41,14 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  *   limit?:integer the maximum number of items to return.  Defaults to 
  *       no limit.
  */
-__csapi_client.EntityList = function(entityManager, opts) {
+__compute_client.EntityList = function(entityManager, opts) {
   this._entityManager = entityManager;
   opts.offset = opts.offset || 0;
   this._options = opts;
 
   this.reset(); // See reset() for definitions of member variables.
 }
-__csapi_client.EntityList.prototype = {
+__compute_client.EntityList.prototype = {
   __proto__: undefined,
 
   /**

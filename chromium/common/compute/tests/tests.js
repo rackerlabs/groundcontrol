@@ -22,7 +22,7 @@ ServerTests.prototype = {
     result.setTimeout(5000);
     result.log("Logging in...");
     try {
-      var client = com.rackspace.cloud.servers.api.client;
+      var client = org.openstack.compute.api.client;
       this.service = new client.ComputeService({
         username: this.username,
         apiKey: this.apiKey

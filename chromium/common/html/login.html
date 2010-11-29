@@ -23,7 +23,7 @@
     $("#loginpage #login").hide();
     $("#loginpage #logging_in").show();
     window.setTimeout(function() {
-      var client = com.rackspace.cloud.servers.api.client;
+      var client = org.openstack.compute.api.client;
       try {
         var service = new client.ComputeService({
           username: credentials.username,

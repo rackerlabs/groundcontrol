@@ -20,9 +20,9 @@
 */
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 /**
  * Creates a new ServerManager instance.  Users should use
@@ -31,11 +31,11 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  *
  * service:ComputeService instance to work with.
  */
-__csapi_client.ServerManager = function(service) {
-  __csapi_client.EntityManager.call(this, service, "/servers");
+__compute_client.ServerManager = function(service) {
+  __compute_client.EntityManager.call(this, service, "/servers");
 }
-__csapi_client.ServerManager.prototype = {
-  __proto__: __csapi_client.EntityManager.prototype,
+__compute_client.ServerManager.prototype = {
+  __proto__: __compute_client.EntityManager.prototype,
 
   /**
    * Return the data to send in an update request for the given Server entity.
@@ -262,7 +262,7 @@ __csapi_client.ServerManager.prototype = {
    *     fault:ComputeFault details about the problem.
    */
   setSchedule: function(opts) {
-    var BS = __csapi_client.BackupSchedule;
+    var BS = __compute_client.BackupSchedule;
     opts.data = {
       backupSchedule: {
         enabled: (opts.enabled != undefined ? opts.enabled : true),
@@ -301,7 +301,7 @@ __csapi_client.ServerManager.prototype = {
       path: opts.entity.id + "/backup_schedule",
       fault: opts.fault,
       success: function(json) {
-        var BS = __csapi_client.BackupSchedule;
+        var BS = __compute_client.BackupSchedule;
         var result = {
           enabled: json.backupSchedule.enabled,
           weekly: BS.dayStringToInteger(json.backupSchedule.weekly),

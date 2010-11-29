@@ -20,9 +20,9 @@
 */
 
 // TODO: only need to do this once after we roll all our files together.
-if (typeof(com) == "undefined")
-  com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
-__csapi_client = com.rackspace.cloud.servers.api.client;
+if (typeof(org) == "undefined")
+  org = { openstack: { compute: { api: { client: {} } } } }
+__compute_client = org.openstack.compute.api.client;
 
 /**
  * Creates a new FlavorManager instance.  Users should use
@@ -31,11 +31,11 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  *
  * service:ComputeService instance to work with.
  */
-__csapi_client.FlavorManager = function(service) {
-  __csapi_client.EntityManager.call(this, service, "/flavors");
+__compute_client.FlavorManager = function(service) {
+  __compute_client.EntityManager.call(this, service, "/flavors");
 }
-__csapi_client.FlavorManager.prototype = {
-  __proto__: __csapi_client.EntityManager.prototype,
+__compute_client.FlavorManager.prototype = {
+  __proto__: __compute_client.EntityManager.prototype,
 
   /**
    * Return false if the given entity is in the middle of completing an
