@@ -25,7 +25,7 @@
     window.setTimeout(function() {
       var client = com.rackspace.cloud.servers.api.client;
       try {
-        var service = new client.CloudServersService({
+        var service = new client.ComputeService({
           username: credentials.username,
           apiKey: credentials.apiKey
         });

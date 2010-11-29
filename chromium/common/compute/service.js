@@ -20,7 +20,7 @@
 */
 
 // TODO: support proxy domains passed into ctor via settings parameter, so
-// people can use this API with a proxy to interact w/ CloudServers from their
+// people can use this API with a proxy to interact w/ Compute from their
 // own sites
 
 // Built according to the Cloud Servers Language Binding Guide, rev 09/16/09.
@@ -31,7 +31,7 @@ if (typeof(com) == "undefined")
 __csapi_client = com.rackspace.cloud.servers.api.client;
 
 /**
- * Creates a new CloudServersService after synchronously authenticating 
+ * Creates a new ComputeService after synchronously authenticating 
  * against the Cloud Servers API.
  *
  * opts:object contains
@@ -41,7 +41,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * 
  * Throws an UnauthorizedFault if credentials are invalid.
  */
-__csapi_client.CloudServersService = function(opts) {
+__csapi_client.ComputeService = function(opts) {
   this._authUrl = "https://auth.api.rackspacecloud.com/v1.0";
   this._username = opts.username;
   // TODO: if opts.settings.proxy, use it
@@ -55,7 +55,7 @@ __csapi_client.CloudServersService = function(opts) {
   this.flavors = this.createFlavorManager();
   this.sharedIpGroups = this.createSharedIpGroupManager();
 }
-__csapi_client.CloudServersService.prototype = {
+__csapi_client.ComputeService.prototype = {
 
   /**
    * Synchronously authenticates using this's credentials.  Upon success,

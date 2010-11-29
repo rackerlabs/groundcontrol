@@ -23,7 +23,7 @@ ServerTests.prototype = {
     result.log("Logging in...");
     try {
       var client = com.rackspace.cloud.servers.api.client;
-      this.service = new client.CloudServersService({
+      this.service = new client.ComputeService({
         username: this.username,
         apiKey: this.apiKey
       });

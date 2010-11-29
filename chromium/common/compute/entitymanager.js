@@ -42,7 +42,7 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
  * Base EntityManager class.  Subclasses must implement _dataForUpdate(),
  * _dataForCreate, and _doneWaiting(); see below for usage.
  *
- * service:CloudServersService is the service that created this manager.
+ * service:ComputeService is the service that created this manager.
  * apiRoot:string is the suffix to append to the service's management URL
  *   to control the particular type of entity, e.g. "/servers".
  */
@@ -215,7 +215,7 @@ __csapi_client.EntityManager.prototype = {
    *       until completion, which saves account resources.
    *     entity:Entity the newly created entity.
    *   fault?:function(fault) called if there was an error in your request.
-   *     fault:CloudServersFault the fault that occurred.
+   *     fault:ComputeFault the fault that occurred.
    */
   create: function(opts) {
     opts.success = opts.success || function() {};
@@ -249,7 +249,7 @@ __csapi_client.EntityManager.prototype = {
    *   entity:Entity to delete.
    *   success?:function() called upon deleteion.
    *   fault?:function(fault) called if there was an error in your request.
-   *     fault:CloudServersFault the fault that occurred.
+   *     fault:ComputeFault the fault that occurred.
    */
   remove: function(opts) {
     opts.success = opts.success || function() {};
@@ -287,7 +287,7 @@ __csapi_client.EntityManager.prototype = {
    *       saves account resources.
    *     entity:Entity the updated entity.
    *   fault?:function(fault) called if there was an error in your request.
-   *     fault:CloudServersFault the fault that occurred.
+   *     fault:ComputeFault the fault that occurred.
    *
    */
   update: function(opts) {
@@ -319,7 +319,7 @@ __csapi_client.EntityManager.prototype = {
    *   success?:function(entity) called upon successful refresh.
    *     entity:Entity the updated entity.
    *   fault?:function(fault) called if there was an error updating the Entity.
-   *     fault:CloudServersFault the fault that occurred.
+   *     fault:ComputeFault the fault that occurred.
    *     entity:Entity the original, unmodified entity.
    */
   refresh: function(opts) {
@@ -359,7 +359,7 @@ __csapi_client.EntityManager.prototype = {
    *   success?:function(entity) called if there were no errors.
    *     entity:Entity the entity, or null if the given id was not found.
    *   fault?:function(fault) called if there was an error fetching the Entity.
-   *     fault:CloudServersFault the fault that occurred.
+   *     fault:ComputeFault the fault that occurred.
    */
   find: function(opts) {
     opts.success = opts.success || function() {};
@@ -398,7 +398,7 @@ __csapi_client.EntityManager.prototype = {
    *     entity:Entity the newly fetched entity.
    *   fault?:function(fault) called if there is a problem communicating with
    *       the server.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    *   timeout_ms?:integer the number of milliseconds to wait before giving up,
    *       in which case neither callback will be called.  Defaults to infinity.
    */
@@ -445,7 +445,7 @@ __csapi_client.EntityManager.prototype = {
    *     error:bool true if there was a problem communicating with the server.
    *         callback will be automatically deregistered if this is true.
    *     targetEntity:Entity the changed entity, if error is false
-   *     fault:CloudServersFault the fault that occurred, if error is true
+   *     fault:ComputeFault the fault that occurred, if error is true
    */
   notify: function(entity, callback) {
     this._notifyPoller.register(entity, callback);

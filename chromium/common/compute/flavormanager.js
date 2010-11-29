@@ -25,35 +25,28 @@ if (typeof(com) == "undefined")
 __csapi_client = com.rackspace.cloud.servers.api.client;
 
 /**
- * Creates a new ImageManager instance.  Users should use
- * CloudServersService.createImageManager() rather than calling this
+ * Creates a new FlavorManager instance.  Users should use
+ * ComputeService.createFlavorManager() rather than calling this
  * constructor directly.
  *
- * service:CloudServersService instance to work with.
+ * service:ComputeService instance to work with.
  */
-__csapi_client.ImageManager = function(service) {
-  __csapi_client.EntityManager.call(this, service, "/images");
+__csapi_client.FlavorManager = function(service) {
+  __csapi_client.EntityManager.call(this, service, "/flavors");
 }
-__csapi_client.ImageManager.prototype = {
+__csapi_client.FlavorManager.prototype = {
   __proto__: __csapi_client.EntityManager.prototype,
-
-  /**
-   * Return the data to send in create request for the given entity.
-   */
-  _dataForCreate: function(entity) {
-    return { image: entity };
-  },
 
   /**
    * Return false if the given entity is in the middle of completing an
    * operation on the server (based on its local attributes).
    */
   _doneWaiting: function(oldEntity, newEntity) {
-    return (newEntity.status in {
-      ACTIVE:1, FAILED:1, UNKNOWN:1
-    });
+    return (oldEntity._lastModified != newEntity._lastModified);
   },
 
-  // Updates are not allowed on Images.
+  // These are not allowed on Flavors.
+  create: function(opts) { this._unsupportedMethod(opts); },
   update: function(opts) { this._unsupportedMethod(opts); },
+  remove: function(opts) { this._unsupportedMethod(opts); },
 }

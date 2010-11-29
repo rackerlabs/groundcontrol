@@ -26,10 +26,10 @@ __csapi_client = com.rackspace.cloud.servers.api.client;
 
 /**
  * Creates a new ServerManager instance.  Users should use
- * CloudServersService.createServerManager() rather than calling this
+ * ComputeService.createServerManager() rather than calling this
  * constructor directly.
  *
- * service:CloudServersService instance to work with.
+ * service:ComputeService instance to work with.
  */
 __csapi_client.ServerManager = function(service) {
   __csapi_client.EntityManager.call(this, service, "/servers");
@@ -73,7 +73,7 @@ __csapi_client.ServerManager.prototype = {
    *       the entity may not have yet returned to a stable state.
    *     entity:Entity the entity after the action has been requested.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   _action: function(opts) {
     opts.fault = opts.fault || function() { };
@@ -109,7 +109,7 @@ __csapi_client.ServerManager.prototype = {
    *   success?:function(server) called after reboot has been requested.
    *     server:Entity the rebooted (or rebooting) server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   reboot: function(opts) {
     opts.data = { reboot: { type: (opts.hard ? "HARD" : "SOFT") } };
@@ -126,7 +126,7 @@ __csapi_client.ServerManager.prototype = {
    *   success?:function(server) called once the rebuild has begun.
    *     server:Entity the server in the process of rebuilding.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   rebuild: function(opts) {
     opts.data = { rebuild: { imageId: opts.imageId } };
@@ -144,7 +144,7 @@ __csapi_client.ServerManager.prototype = {
    *       revertResize() for 24 hours.
    *     server:Entity the server in the process of resizing.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   resize: function(opts) {
     opts.data = { resize: { flavorId: opts.flavorId } };
@@ -160,7 +160,7 @@ __csapi_client.ServerManager.prototype = {
    *   success?:function(server) called after confirmation has been sent.
    *     server:Entity the server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   confirmResize: function(opts) {
     opts.data = { confirmResize: null };
@@ -177,7 +177,7 @@ __csapi_client.ServerManager.prototype = {
    *       wait() on server if you want to wait until the revert is complete.
    *     server:Entity the reverted server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   revertResize: function(opts) {
     opts.data = { revertResize: null };
@@ -207,7 +207,7 @@ __csapi_client.ServerManager.prototype = {
    *       wait() on the server if you want to wait until the share completes.
    *     server:Entity the updated server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   shareIp: function(opts) {
     opts.data = {
@@ -231,7 +231,7 @@ __csapi_client.ServerManager.prototype = {
    *   success?:function(server) called after the unshare is complete.
    *     server:Entity the updated server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   unshareIp: function(opts) {
     opts.type = "DELETE";
@@ -259,7 +259,7 @@ __csapi_client.ServerManager.prototype = {
    *   success?:function(server) called after the schedule has been set.
    *     server:Entity the updated server.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   setSchedule: function(opts) {
     var BS = __csapi_client.BackupSchedule;
@@ -294,7 +294,7 @@ __csapi_client.ServerManager.prototype = {
    *         backups are not performed.
    *     enabled:boolean If false, backups will not be performed.
    *   fault?:function(fault) called if there is a problem with the request.
-   *     fault:CloudServersFault details about the problem.
+   *     fault:ComputeFault details about the problem.
    */
   getSchedule: function(opts) {
     this._request({

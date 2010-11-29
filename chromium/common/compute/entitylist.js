@@ -69,7 +69,7 @@ __csapi_client.EntityList.prototype = {
   /**
    * Returns true if the list contains no items.
    *
-   * Throws a CloudServersFault if there was a problem communicating with the
+   * Throws a ComputeFault if there was a problem communicating with the
    * server.
    */
   isEmpty: function() {
@@ -83,7 +83,7 @@ __csapi_client.EntityList.prototype = {
   /**
    * Return the latest last-modification of any entity in this list.
    *
-   * Throws a CloudServersFault if there was a problem communicating
+   * Throws a ComputeFault if there was a problem communicating
    * with the server.
    */
   getLastModified: function() {
@@ -114,7 +114,7 @@ __csapi_client.EntityList.prototype = {
    *     entities:list_of_Entity the entities from each call to each().
    *
    *   fault?:function(fault)
-   *     fault:CloudServersFault the fault that occurred
+   *     fault:ComputeFault the fault that occurred
    */
   forEachAsync: function(opts) {
     opts.complete = opts.complete || function() {};
@@ -145,7 +145,7 @@ __csapi_client.EntityList.prototype = {
    * opts:object contains:
    *   success:function(entity) passed the entity upon success.  If there are
    *       no more entities in the list, entity will be null.
-   *   fault?:function(fault) passed a CloudServersFault object upon error
+   *   fault?:function(fault) passed a ComputeFault object upon error
    */
   _nextAsync: function(opts) {
     // Within a page?  Iterate.
@@ -180,7 +180,7 @@ __csapi_client.EntityList.prototype = {
    * opts:objects contains:
    *   async:bool true if the page should be fetched asynchronously.
    *   success?:function() called upon successful update
-   *   fault?:function(fault) passed a CloudServersFault object upon error
+   *   fault?:function(fault) passed a ComputeFault object upon error
    */
   _storeNextPage: function(opts) {
     opts.success = opts.success || function() {};
@@ -238,7 +238,7 @@ __csapi_client.EntityList.prototype = {
    * next() will not fail.  Use forEachAsync() instead of hasNext() and
    * next() for an asynchronous approach.
    * 
-   * Throws a CloudServersFault if it has trouble communicating with the
+   * Throws a ComputeFault if it has trouble communicating with the
    * server.
    */
   hasNext: function() {

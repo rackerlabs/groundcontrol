@@ -24,34 +24,21 @@ if (typeof(com) == "undefined")
   com = { rackspace: { cloud: { servers: { api: { client: {} } } } } }
 __csapi_client = com.rackspace.cloud.servers.api.client;
 
+// This exists just for the sake of declaring somewhere that faults will
+// containing code and message, and may contain details and retryAfter.
+// In practice, faults may have 'object' as their prototype.
+
 /**
- * Creates a new SharedIpGroupManager instance.  Users should use
- * CloudServersService.createSharedIpGroupManager() rather than calling this
- * constructor directly.
- *
- * service:CloudServersService instance to work with.
+ * A fault thrown by the service.
+ * code:integer HTTP status code
+ * message:string informational message
+ * details?:string optional further details
+ * retryAfter?:Date after which to retry a request that was OverLimit.
  */
-__csapi_client.SharedIpGroupManager = function(service) {
-  __csapi_client.EntityManager.call(this, service, "/shared_ip_groups");
-}
-__csapi_client.SharedIpGroupManager.prototype = {
-  __proto__: __csapi_client.EntityManager.prototype,
-
-  /**
-   * Return the data to send in create request for the given entity.
-   */
-  _dataForCreate: function(entity) {
-    return { sharedIpGroup: entity };
-  },
-
-  /**
-   * Return false if the given entity is in the middle of completing an
-   * operation on the server (based on its local attributes).
-   */
-  _doneWaiting: function(oldEntity, newEntity) {
-    return (oldEntity._lastModified != newEntity._lastModified);
-  },
-
-  // Updates are not allowed on SharedIpGroups.
-  update: function(opts) { this._unsupportedMethod(opts); },
+__csapi_client.ComputeFault = function(
+    code, message, details, retryAfter) {
+  this.code = code;
+  this.message = message;
+  if (details) this.details = details;
+  if (retryAfter) this.retryAfter = retryAfter;
 }
