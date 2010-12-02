@@ -62,8 +62,13 @@ __compute_client.EntityManager = function(service, apiRoot) {
  *   retryAfter?:Date time after which to retry a rate-limited request
  */
 __compute_client.EntityManager._parseFault = function(xhr) {
-  var text = xhr.responseText || '{ "dunno": { "message": "Unknown fault" } }';
-  var json = $.parseJSON(text);
+  var json;
+  try {
+    json = $.parseJSON(xhr.responseText);
+  }
+  catch (ex) {
+    return { code: 0, type: 'ComputeFault', message: 'Unknown fault' };
+  }
   for (var faultname in json) { // grab the only object within json
     var fault = json[faultname];
     fault.type = faultname;
