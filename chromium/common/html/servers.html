@@ -49,7 +49,7 @@
     <div>Size: <span class="flavor"></span></div>
     <div>Shared IP Group: <span class="ipgroup"></span></div>
     <div>Status: <span class="status"></span></div>
-    <div>Backups: <span class="backupschedule"></span></div>
+    <!--    <div>Backups: <span class="backupschedule"></span></div>-->
 
     <div><a href="#" class="delete">Delete</a></div>
     <div><a href="#" class="reboot">Reboot</a></div>
@@ -220,7 +220,7 @@
             }
             else {
               entity.name = value;
-              service.entity.update({ 
+              service.servers.update({ 
                 entity: entity, 
                 success: function(newEntity) { 
                   updated(entity, newEntity, "Saved.");
@@ -283,7 +283,7 @@
         var ipgroupname = entity.sharedIpGroupId ? ipgroups[entity.sharedIpGroupId].name : "none";
         $details.
           find(".id").html(entity.id).end().
-          find(".ip").html(entity.addresses.public[0]).end().
+          find(".ip").html(entity.addresses.public[0] || 'none').end().
           find(".ipgroup").html(ipgroupname).end().
           find(".status").text(entity.status).end();
 
@@ -319,6 +319,7 @@
           $details.find(".status").append(controls);
         }
 
+        /* commenting out backup schedules until implemented
         var $schedNode = $details.find(".backupschedule").html("");
         $("<span>").text("Loading...").addClass("greymessage").
           appendTo($schedNode);
@@ -430,6 +431,7 @@
             });
           }
         });
+        */
 
         $details.
           dialog('option', 'title', entity.name).
@@ -442,7 +444,7 @@
           clone().
           find(".name").html(entity.name).end().
           find(".status").html(entity.status).end().
-          find(".ip").html(entity.addresses.public[0]).end();
+          find(".ip").html(entity.addresses.public[0] || 'none').end();
         return row;
       }
 
