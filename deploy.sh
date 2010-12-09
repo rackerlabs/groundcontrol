@@ -25,7 +25,7 @@ zip -r GroundControl.zip chromium
 )
 # To deploy the new version to Chrome users:
 # Log into https://chrome.google.com/extensions/developer/dashboard
-# as groundcontrol@rackspace.com, update the extension with this .zip file,
+# as amesserl@rackspace.com, update the extension with this .zip file,
 # and choose Publish.
 #
 # You'll need to have bumped the version number in chromium/manifest.json or
