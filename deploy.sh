@@ -31,14 +31,12 @@ users will have to go re-install when they want to get newer versions.
 
 To deploy the new version to Chrome users:
 
-  1. Log into https://chrome.google.com/extensions/developer/dashboard
+  1. Increase chromium/manifest.json:"version" by one
+  2. Log into https://chrome.google.com/extensions/developer/dashboard
      as amesserl@rackspace.com [password is on the ozone wiki page for
      GroundControl]
-  2. Update the extension with GroundControl.zip found in this directory
-  3. Choose Publish.
-
-You'll need to have bumped the version number in chromium/manifest.json or
-you'll get a complaint.
+  3. Update the extension with GroundControl.zip found in this directory
+  4. Choose Publish.
 
 Existing users of the extension will automatically be updated to the
 latest version within a few days.
