@@ -24,16 +24,18 @@ Created xpi (for Firefox) and zip (for Chrome) files.
 
 To deploy the new version to Firefox users: run
   scp GroundControl.xpi root@groundcontrol.rackspace.com:/var/www/
+  # password can be found on the ozone wiki page for GroundControl
 
 I haven't figured out how we notify current users about updates.  For now,
 users will have to go re-install when they want to get newer versions.
 
-
 To deploy the new version to Chrome users:
 
-Log into https://chrome.google.com/extensions/developer/dashboard
-as amesserl@rackspace.com, update the extension with GroundControl.zip
-found in this directory, and choose Publish.
+  1. Log into https://chrome.google.com/extensions/developer/dashboard
+     as amesserl@rackspace.com [password is on the ozone wiki page for
+     GroundControl]
+  2. Update the extension with GroundControl.zip found in this directory
+  3. Choose Publish.
 
 You'll need to have bumped the version number in chromium/manifest.json or
 you'll get a complaint.
