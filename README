@@ -13,9 +13,18 @@ TO INSTALL FOR TESTING
     click Developer Mode
     click Load Unpacked Extension
     select ~/groundcontrol/chromium
+    Now you have a GroundControl button next to the address bar.
   In Firefox:
     cd ~/.mozilla/firefox/*.default
     echo "~/groundcontrol/firefox/" > "groundcontrol@rackspace.com"
+    Start Firefox.
+    Now you have a Tools | GroundControl menu entry.
+
+
+TO DEPLOY THIS CODE (only useful to developers)
+===============================================
+
+  See ./deploy.sh
 
 
 FILES
@@ -24,6 +33,7 @@ FILES
   chromium/         The Chromium extension
   firefox/          The Firefox extension
   chromium/common/  The code used by both extensions (FF symlinks to this)
+  deploy.sh         Script to deploy new versions of the code
 
 ROADMAP
 =======
